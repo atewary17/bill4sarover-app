@@ -1,24 +1,34 @@
 # README
+# Bill4Sarover
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+A hotel management system built with Ruby on Rails.
 
-Things you may want to cover:
+## Features
 
-* Ruby version
+- Customer management
+- Room management
+- Booking system
+- Check-in / Check-out tracking
+- Banquet bookings (without rooms)
+- Status lifecycle:
+  - booked
+  - checked_in
+  - checked_out
+  - cancelled
 
-* System dependencies
+## Tech Stack
 
-* Configuration
+- Ruby on Rails 7
+- PostgreSQL
+- Turbo / Hotwire
+- HTML / CSS
 
-* Database creation
+## Setup
 
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+```bash
+git clone https://github.com/yourusername/bill4sarover-app.git
+cd bill4sarover-app
+bundle install
+rails db:create
+rails db:migrate
+rails server
