@@ -3,7 +3,7 @@ source "https://rubygems.org"
 ruby "3.3.5"
 gem "rails", "~> 7.1.3", ">= 7.1.3.4"
 gem "sprockets-rails"
-gem "pg", "~> 1.1"
+gem "pg", "~> 1.5"
 gem "puma", ">= 5.0"
 gem "jsbundling-rails"
 gem "turbo-rails"
@@ -34,10 +34,6 @@ end
 
 group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
-end
-
-group :production do
-  gem "pg"
 end
 
 gem "importmap-rails", "~> 2.2"
