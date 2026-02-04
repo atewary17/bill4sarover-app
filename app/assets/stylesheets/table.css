@@ -1,0 +1,23 @@
+table {
+  border-collapse: collapse;
+  font-family: Arial;
+  font-size: 14px;
+}
+
+th {
+  background: #1f2933;
+  color: white;
+}
+
+td, th {
+  padding: 10px;
+  text-align: center;
+}
+
+tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+tr:hover {
+  background: #e6f2ff;
+}

@@ -1,0 +1,43 @@
+<h1>Bookings</h1>
+
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <thead style="background:#f2f2f2">
+    <tr>
+      <th>ID</th>
+      <th>Customer</th>
+      <th>Room</th>
+      <th>Check In</th>
+      <th>Check Out</th>
+      <th>Guests</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @bookings.each do |b| %>
+      <tr>
+        <td><%= b.id %></td>
+        <td><%= b.customer.name %></td>
+        <td><%= b.room&.room_number || "Banquet" %></td>
+        <td><%= b.check_in.strftime("%d %b %Y %H:%M") %></td>
+        <td><%= b.check_out.strftime("%d %b %Y %H:%M") %></td>
+        <td><%= b.adults + b.children %></td>
+        <td>
+        <span class="status <%= b.status %>">
+            <%= b.status.capitalize %>
+        </span>
+        </td>
+        <td>
+          <%= link_to "View", booking_path(b) %> |
+          <%= link_to "Edit", edit_booking_path(b) %> |
+          <%= link_to "Delete", b,
+              data: { turbo_method: :delete, turbo_confirm: "Are you sure?" } %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+<%= link_to "New Booking", new_booking_path %>

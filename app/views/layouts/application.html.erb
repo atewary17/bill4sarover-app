@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Bill4Sarover</title>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_include_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body>
+    <header class="navbar">
+      <h2>Bill4Sarover</h2>
+
+      <% if user_signed_in? %>
+        <nav>
+          <%= link_to "Dashboard", root_path %>
+          <%= link_to "Customers", customers_path %>
+          <%= link_to "Bookings", bookings_path %>
+          <%= button_to "Logout", destroy_user_session_path, method: :delete %>
+        </nav>
+      <% end %>
+    </header>
+
+    <main class="container">
+      <%= yield %>
+    </main>
+  </body>
+</html>

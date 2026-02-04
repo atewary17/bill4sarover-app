@@ -1,0 +1,51 @@
+<%= form_with(model: booking) do |form| %>
+
+  <% if booking.errors.any? %>
+    <div class="error-box">
+      <ul>
+        <% booking.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :customer_id, "Customer" %><br>
+    <%= form.collection_select :customer_id, Customer.all, :id, :name %>
+  </div>
+
+  <div>
+    <%= form.label :room_id, "Room (optional)" %><br>
+    <%= form.collection_select :room_id, Room.all, :id, :room_number, include_blank: true %>
+  </div>
+
+  <div>
+    <%= form.label :check_in %><br>
+    <%= form.datetime_field :check_in %>
+  </div>
+
+  <div>
+    <%= form.label :check_out %><br>
+    <%= form.datetime_field :check_out %>
+  </div>
+
+  <div>
+    <%= form.label :adults %><br>
+    <%= form.number_field :adults %>
+  </div>
+
+  <div>
+    <%= form.label :children %><br>
+    <%= form.number_field :children %>
+  </div>
+
+  <div>
+    <%= form.label :status %><br>
+    <%= form.select :status, Booking.statuses.keys %>
+  </div>
+
+  <br>
+  <%= form.submit %>
+
+<% end %>
