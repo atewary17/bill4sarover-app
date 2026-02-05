@@ -103,4 +103,4 @@ yarn-1.22.5.js
 dump.rdb
 
 # Ignore build files
-/app/assets/builds
+# /app/assets/builds
