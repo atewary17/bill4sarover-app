@@ -64,10 +64,10 @@ document.addEventListener("DOMContentLoaded", () => {
     roomNameLabel.innerText = selectedText;
     fetch(`/bookings/check_room_status?room_id=${roomSelect.value}&check_in=${checkIn.value}&check_out=${checkOut.value}`).then((res) => res.json()).then((data) => {
       if (data.booked) {
-        roomStatus.innerHTML = "\u{1F534} Room is already booked";
+        roomStatus.innerHTML = "\u{1F534}";
         roomStatus.style.color = "red";
       } else {
-        roomStatus.innerHTML = "\u{1F7E2} Room is available";
+        roomStatus.innerHTML = "\u{1F7E2} ";
         roomStatus.style.color = "green";
       }
     });
