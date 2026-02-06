@@ -1,4 +1,5 @@
 import { Application } from "@hotwired/stimulus"
+import "./booking/form"
 
 const application = Application.start()
 

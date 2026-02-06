@@ -1,51 +1,136 @@
-<%= form_with(model: booking) do |form| %>
-
-  <% if booking.errors.any? %>
-    <div class="error-box">
-      <ul>
-        <% booking.errors.each do |error| %>
-          <li><%= error.full_message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
-
-  <div>
-    <%= form.label :customer_id, "Customer" %><br>
-    <%= form.collection_select :customer_id, Customer.all, :id, :name %>
-  </div>
-
-  <div>
-    <%= form.label :room_id, "Room (optional)" %><br>
-    <%= form.collection_select :room_id, Room.all, :id, :room_number, include_blank: true %>
-  </div>
-
-  <div>
-    <%= form.label :check_in %><br>
-    <%= form.datetime_field :check_in %>
-  </div>
-
-  <div>
-    <%= form.label :check_out %><br>
-    <%= form.datetime_field :check_out %>
-  </div>
-
-  <div>
-    <%= form.label :adults %><br>
-    <%= form.number_field :adults %>
-  </div>
-
-  <div>
-    <%= form.label :children %><br>
-    <%= form.number_field :children %>
-  </div>
-
-  <div>
-    <%= form.label :status %><br>
-    <%= form.select :status, Booking.statuses.keys %>
-  </div>
-
-  <br>
-  <%= form.submit %>
-
+<% content_for :page_js do %>
+  <script type="module">
+    import "booking_form"
+  </script>
 <% end %>
+
+<div class="booking-page">
+
+  <!-- ================= LEFT: BOOKING FORM ================= -->
+  <div class="booking-card">
+    <%= form_with(model: booking, class: "booking-form") do |form| %>
+
+      <% if booking.errors.any? %>
+        <div class="error-box">
+          <ul>
+            <% booking.errors.each do |error| %>
+              <li><%= error.full_message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <h2>New Booking</h2>
+
+      <!-- Stay Duration -->
+      <div class="form-section">
+        <h3>Stay Duration</h3>
+
+        <div class="form-grid">
+          <div>
+            <%= form.label :check_in %>
+            <%= form.datetime_field :check_in, required: true %>
+          </div>
+
+          <div>
+            <%= form.label :check_out %>
+            <%= form.datetime_field :check_out, required: true %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Room -->
+      <div class="form-section">
+        <h3>Room</h3>
+
+        <%= form.label :room_id, "Available Rooms" %>
+
+        <div class="room-row">
+          <%= form.collection_select :room_id, [], :id, :room_number,
+                { include_blank: "Select dates first" },
+                { required: true, disabled: true } %>
+
+          <div id="room-status" class="room-status"></div>
+        </div>
+      </div>
+
+      <!-- Customer -->
+      <div class="form-section">
+        <h3>Customer</h3>
+
+        <div class="autocomplete-wrapper">
+          <input
+            type="text"
+            id="customer_search"
+            placeholder="Search by name or phone"
+            autocomplete="off"
+            class="autocomplete-input"
+            required
+          >
+
+          <div id="customer-results" class="autocomplete-results"></div>
+        </div>
+
+        <%= form.hidden_field :customer_id, id: "booking_customer_id", required: true %>
+
+        <div class="mt-8">
+          <%= link_to "New", new_customer_path, target: "_blank", class: "btn-secondary" %>
+        </div>
+      </div>
+
+      <!-- Guests -->
+      <div class="form-section">
+        <h3>Guests</h3>
+
+        <div class="form-grid">
+          <div>
+            <%= form.label :adults %>
+            <%= form.number_field :adults, min: 1, required: true %>
+          </div>
+
+          <div>
+            <%= form.label :children %>
+            <%= form.number_field :children, min: 0, value: booking.children || 0, required: true %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div class="form-section">
+        <h3>Status</h3>
+        <%= form.select :status, Booking.statuses.keys, {}, required: true %>
+      </div>
+
+      <%= form.submit "Save Booking",
+            class: "btn-primary full-width",
+            id: "save-booking-btn" %>
+
+    <% end %>
+  </div>
+
+  <!-- ================= RIGHT: INFO PANEL ================= -->
+  <div class="customer-card">
+    <h3>Information</h3>
+
+    <div class="customer-panels">
+
+      <!-- Room History -->
+      <div class="customer-panel top">
+        <h3>Room: <span id="selected-room-name">None</span></h3>
+        <div id="customer-history">
+          <p>No history yet</p>
+        </div>
+      </div>
+
+      <!-- Customer Preview -->
+      <div class="customer-panel bottom">
+        <h3>Selected Customer</h3>
+        <div id="customer-preview">
+          <p>Select a customer to view details</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>

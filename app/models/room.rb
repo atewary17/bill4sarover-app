@@ -1,7 +1,7 @@
 class Room < ApplicationRecord
     has_many :bookings
    
-    ROOM_TYPES = %w[standard deluxe suite]
+    ROOM_TYPES = %w[Classic_Harmony Regal_Harmony Classic_Residence Banquet]
     STATUSES = %w[available occupied maintenance]
 
     validates :room_number, presence: true, uniqueness: true
