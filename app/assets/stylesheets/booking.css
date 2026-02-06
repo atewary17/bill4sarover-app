@@ -1,0 +1,131 @@
+
+.booking-page {
+  display: flex;
+  gap: 30px;
+  padding: 20px;
+}
+
+.booking-card, .customer-card {
+  background: white;
+  border-radius: 8px;
+  padding: 25px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.booking-card {
+  flex: 2;
+}
+
+.customer-card {
+  flex: 1;
+}
+
+.form-section {
+  margin-bottom: 25px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+.customer-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.full-width {
+  width: 100%;
+  margin-top: 15px;
+}
+
+.btn-primary {
+  background: #2d6cdf;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+}
+
+.btn-secondary {
+  background: #eee;
+  padding: 6px 12px;
+  border-radius: 4px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+
+.error-box {
+  background: #ffecec;
+  border: 1px solid #ffb3b3;
+  padding: 10px;
+  margin-bottom: 15px;
+}
+
+.autocomplete-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.autocomplete-input {
+  width: 100%;
+  padding: 8px;
+}
+
+.autocomplete-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ccc;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.autocomplete-item {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.autocomplete-item:hover {
+  background: #f0f0f0;
+}
+
+.room-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.room-status {
+  font-weight: bold;
+  white-space: nowrap;
+}
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(100%);
+}
+
+.history-item {
+  padding: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.9rem;
+}
+
+.status.booked { color: orange; }
+.status.checked_in { color: green; }
+.status.checked_out { color: gray; }
+.status.cancelled { color: red; }
+
+
+/*
+ *= require_tree .
+ *= require_self
+ *= require forms
+ */

@@ -1,0 +1,27 @@
+<h1>Rooms</h1>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Room No</th>
+      <th>Type</th>
+      <th>Base Price</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @rooms.each do |room| %>
+      <tr>
+        <td><%= room.room_number %></td>
+        <td><%= room.room_type.capitalize %></td>
+        <td>₹ <%= room.base_price_per_night %></td>
+        <td>
+          <span class="status <%= room.status %>">
+            <%= room.status.capitalize %>
+          </span>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

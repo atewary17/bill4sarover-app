@@ -1,0 +1,50 @@
+/* app/assets/stylesheets/forms.css */
+
+.booking-form input,
+.booking-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d0d7de;
+  font-size: 15px;
+  transition: all 0.2s ease;
+  background: #fafafa;
+}
+
+.booking-form input:focus,
+.booking-form select:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.15);
+  background: white;
+}
+
+/* Labels */
+.booking-form label {
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: block;
+  color: #374151;
+}
+
+/* Section cards */
+.form-section {
+  margin-bottom: 20px;
+}
+
+.form-section h3 {
+  margin-bottom: 10px;
+  color: #111827;
+}
+
+/* Room row inline */
+.room-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.room-status {
+  min-width: 160px;
+  font-size: 14px;
+}
