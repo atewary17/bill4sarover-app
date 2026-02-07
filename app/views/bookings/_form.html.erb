@@ -98,7 +98,7 @@
       <!-- Status -->
       <div class="form-section">
         <h3>Status</h3>
-        <%= form.select :status, Booking.statuses.keys, {}, required: true %>
+        <%= form.select :status, Booking.statuses.keys - ["booked"], {}, required: true %>
       </div>
 
       <%= form.submit "Save Booking",
