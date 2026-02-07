@@ -11,6 +11,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const hiddenCustomerId = document.getElementById("booking_customer_id");
   const historyBox = document.getElementById("customer-history");
   const roomNameLabel = document.getElementById("selected-room-name");
+  const statusSelect = document.getElementById("booking_status");
+  const customerWarning = document.getElementById("customer-warning");
   if (!customerSearch || !roomSelect) return;
   function loadRooms() {
     if (!checkIn.value || !checkOut.value) return;
@@ -64,11 +66,17 @@ document.addEventListener("DOMContentLoaded", () => {
     roomNameLabel.innerText = selectedText;
     fetch(`/bookings/check_room_status?room_id=${roomSelect.value}&check_in=${checkIn.value}&check_out=${checkOut.value}`).then((res) => res.json()).then((data) => {
       if (data.booked) {
-        roomStatus.innerHTML = "\u{1F534}";
+        roomStatus.innerHTML = "\u{1F534} not available";
         roomStatus.style.color = "red";
+        [...statusSelect.options].forEach((opt) => {
+          if (opt.value === "booked") opt.disabled = true;
+        });
       } else {
-        roomStatus.innerHTML = "\u{1F7E2} ";
+        roomStatus.innerHTML = "\u{1F7E2} available";
         roomStatus.style.color = "green";
+        [...statusSelect.options].forEach((opt) => {
+          if (opt.value === "booked") opt.disabled = false;
+        });
       }
     });
     fetch(`/bookings/room_history?room_id=${roomSelect.value}&check_in=${checkIn.value}&check_out=${checkOut.value}`).then((res) => res.json()).then((data) => {

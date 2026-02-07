@@ -26,8 +26,9 @@ Rails.application.routes.draw do
       get :check_room_status
       get :room_history
     end
-    
     member do
+      patch :check_in
+      patch :check_out
       patch :cancel
     end
   end

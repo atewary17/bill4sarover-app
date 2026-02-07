@@ -2,3 +2,4 @@
 
 pin "application"
 pin "booking_form"
+pin "bootstrap"

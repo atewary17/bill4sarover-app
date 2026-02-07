@@ -19,7 +19,7 @@ class BookingsController < ApplicationController
     @booking = Booking.new(booking_params)
 
     if @booking.save
-      redirect_to bookings_path, notice: "Booking created successfully"
+      redirect_to @booking, notice: "Booking created successfully"
     else
       render :new, status: :unprocessable_entity
     end
@@ -27,7 +27,7 @@ class BookingsController < ApplicationController
 
   def update
     if @booking.update(booking_params)
-      redirect_to bookings_path, notice: "Booking updated successfully"
+      redirect_to @booking, notice: "Booking updated successfully"
     else
       render :edit, status: :unprocessable_entity
     end
@@ -55,6 +55,19 @@ class BookingsController < ApplicationController
 
     render json: @rooms.select(:id, :room_number, :room_type)
   end
+
+  def check_in
+    @booking = Booking.find(params[:id])
+    @booking.update(status: "checked_in")
+    redirect_to @booking, notice: "Guest checked in"
+  end
+
+  def check_out
+    @booking = Booking.find(params[:id])
+    @booking.update(status: "checked_out")
+    redirect_to @booking, notice: "Guest checked out"
+  end
+
 
   def check_room_status
     booked = Booking.booked_for_dates?(
@@ -107,7 +120,8 @@ class BookingsController < ApplicationController
       :check_out,
       :adults,
       :children,
-      :status
+      :status,
+      :comment 
     )
   end
 end

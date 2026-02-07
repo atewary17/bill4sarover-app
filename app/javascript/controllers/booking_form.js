@@ -13,6 +13,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const hiddenCustomerId  = document.getElementById("booking_customer_id");
   const historyBox        = document.getElementById("customer-history");
   const roomNameLabel     = document.getElementById("selected-room-name");
+  const statusSelect = document.getElementById("booking_status");
+  const customerWarning   = document.getElementById("customer-warning");
+
 
   // Page guard
   if (!customerSearch || !roomSelect) return;
@@ -95,11 +98,17 @@ document.addEventListener("DOMContentLoaded", () => {
       .then(res => res.json())
       .then(data => {
         if (data.booked) {
-          roomStatus.innerHTML = "🔴";
+          roomStatus.innerHTML = "🔴 not available";
           roomStatus.style.color = "red";
+          [...statusSelect.options].forEach(opt => {
+            if (opt.value === "booked") opt.disabled = true;
+          });
         } else {
-          roomStatus.innerHTML = "🟢 ";
+          roomStatus.innerHTML = "🟢 available";
           roomStatus.style.color = "green";
+          [...statusSelect.options].forEach(opt => {
+            if (opt.value === "booked") opt.disabled = false;
+          });
         }
       });
 
