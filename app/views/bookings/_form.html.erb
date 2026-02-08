@@ -3,6 +3,8 @@
     import "booking_form"
   </script>
 <% end %>
+<body data-controller="<%= controller_name %>"
+data-action="<%= action_name %>">
 
 <div class="container-fluid py-4">
   <div class="row g-4">
@@ -112,14 +114,16 @@
             </div>
 
             <!-- Status -->
+          <% if action_name == "edit" %>
             <div class="mb-4">
               <h5 class="mb-3">Booking Status</h5>
               <%= form.select :status,
-                    Booking.statuses.keys - ["checked_in", "checked_out"],
+                    Booking.statuses.keys,
                     {},
                     required: true,
                     class: "form-select" %>
             </div>
+          <%end%>
 
             <!-- Comment -->
             <div class="mb-4">
@@ -175,3 +179,4 @@
 
   </div>
 </div>
+</body>

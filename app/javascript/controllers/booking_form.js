@@ -13,9 +13,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const hiddenCustomerId  = document.getElementById("booking_customer_id");
   const historyBox        = document.getElementById("customer-history");
   const roomNameLabel     = document.getElementById("selected-room-name");
-  const statusSelect = document.getElementById("booking_status");
-  const customerWarning   = document.getElementById("customer-warning");
-
+  const pageController    = document.body.dataset.controller;
+  const pageAction        = document.body.dataset.action;
+  const isNewBooking = pageController === "bookings" && pageAction === "new";
+  const saveBtn = document.getElementById("save-booking-btn");
 
   // Page guard
   if (!customerSearch || !roomSelect) return;
@@ -100,15 +101,19 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data.booked) {
           roomStatus.innerHTML = "🔴 not available";
           roomStatus.style.color = "red";
-          [...statusSelect.options].forEach(opt => {
-            if (opt.value === "booked") opt.disabled = true;
-          });
+          if (isNewBooking) {
+            saveBtn.disabled = true;
+            saveBtn.classList.add("disabled");
+            saveBtn.title = "Room is not available";
+          }
         } else {
           roomStatus.innerHTML = "🟢 available";
           roomStatus.style.color = "green";
-          [...statusSelect.options].forEach(opt => {
-            if (opt.value === "booked") opt.disabled = false;
-          });
+          if (isNewBooking) {
+            saveBtn.disabled = false;
+            saveBtn.classList.remove("disabled");
+            saveBtn.title = "";
+          }
         }
       });
 

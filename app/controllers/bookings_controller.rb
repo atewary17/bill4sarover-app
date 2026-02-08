@@ -2,14 +2,25 @@ class BookingsController < ApplicationController
   before_action :set_booking, only: %i[ show edit update destroy ]
 
   def index
+    @from = params[:from]
+    @to   = params[:to]
+
     @bookings = Booking.includes(:customer, :room).order(check_in: :desc)
+
+    if @from.present? && @to.present?
+      @bookings = @bookings.where(
+        "check_in >= ? AND check_out <= ?",
+        @from.to_date.beginning_of_day,
+        @to.to_date.end_of_day
+      )
+    end
   end
 
   def show
   end
 
   def new
-    @booking = Booking.new
+    @booking = Booking.new(status: "booked")
   end
 
   def edit
@@ -17,6 +28,7 @@ class BookingsController < ApplicationController
 
   def create
     @booking = Booking.new(booking_params)
+    @booking.status = "booked"
 
     if @booking.save
       redirect_to @booking, notice: "Booking created successfully"
