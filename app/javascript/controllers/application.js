@@ -1,4 +1,6 @@
 import { Application } from "@hotwired/stimulus"
+import "@hotwired/turbo-rails"
+
 import "./booking/form"
 
 const application = Application.start()

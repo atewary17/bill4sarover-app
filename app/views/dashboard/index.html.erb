@@ -1,2 +1,27 @@
-<h1>Dashboard#index</h1>
-<p>Find me in app/views/dashboard/index.html.erb</p>
+<h1>Dashboard</h1>
+
+<div id="booking-chart" style="height: 400px;"></div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+    console.log("DOM loaded");
+
+    if (typeof Highcharts !== "object") {
+        console.error("Highcharts not loaded");
+        return;
+    }
+
+    const data = <%= raw @booking_counts.to_json %>;
+    const categories = Object.keys(data);
+    const values = Object.values(data);
+
+    Highcharts.chart('booking-chart', {
+        chart: { type: 'column' },
+        title: { text: 'Bookings Over Time' },
+        xAxis: { categories: categories },
+        yAxis: { allowDecimals: false },
+        series: [{ name: 'Bookings', data: values }],
+        credits: { enabled: false }
+    });
+    });
+</script>

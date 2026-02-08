@@ -78,7 +78,7 @@
                 class: "btn btn-warning me-2" %>
         <% end %>
 
-        <% if @booking.booked? || @booking.checked_in? %>
+        <% if @booking.booked? %>
           <%= button_to "Cancel",
                 cancel_booking_path(@booking),
                 method: :patch,

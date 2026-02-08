@@ -19,6 +19,7 @@ gem 'devise'
 gem 'rack-cors'
 gem 'paper_trail'
 gem 'ostruct'
+gem "groupdate"
 
 
 group :development, :test do
