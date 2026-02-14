@@ -12,6 +12,7 @@ Rails.application.routes.draw do
   get 'bookings/new'
   get 'bookings/edit'
   get 'dashboard/index'
+  get 'dashboard/mobile_output'
   devise_for :users
   get "up" => "rails/health#show", as: :rails_health_check
 
