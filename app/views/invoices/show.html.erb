@@ -1,0 +1,21 @@
+<!-- app/views/invoices/show.html.erb -->
+<h1>Invoice <%= @invoice.invoice_number %></h1>
+
+<p><strong>Status:</strong> <%= @invoice.status %></p>
+<p><strong>Billed To:</strong> <%= @invoice.billed_to_name %></p>
+
+<h4>Bookings</h4>
+<ul>
+  <% @invoice.bookings.each do |b| %>
+    <li>
+      Booking #<%= b.id %> —
+      <%= b.check_in.to_date %> → <%= b.check_out.to_date %>
+    </li>
+  <% end %>
+</ul>
+
+<h4>Financial</h4>
+<p>Subtotal: ₹ <%= @invoice.subtotal %></p>
+<p>Discount: ₹ <%= @invoice.discount_amount %></p>
+<p>Tax: ₹ <%= @invoice.tax_amount %></p>
+<p><strong>Total: ₹ <%= @invoice.total_amount %></strong></p>

@@ -8,4 +8,8 @@ class Room < ApplicationRecord
     validates :room_type, inclusion: { in: ROOM_TYPES }
     validates :status, inclusion: { in: STATUSES }
     validates :base_price_per_night, numericality: { greater_than: 0 }
+
+    def rate
+        return base_price_per_night
+    end
 end

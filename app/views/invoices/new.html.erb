@@ -1,0 +1,121 @@
+<h1>New Invoice</h1>
+
+<%= form_with model: @invoice, class: "card p-4" do |f| %>
+
+    <h5>Billed To</h5>
+
+    <div class="row mb-3">
+    <div class="col-md-4">
+        <%= f.select :billed_to_type,
+            ["Customer", "Company"],
+            {},
+            class: "form-select",
+            id: "billed-to-type" %>
+    </div>
+
+    <div class="col-md-8" id="customer-select-wrapper">
+        <%= f.select :billed_to_id,
+            @customers.map { |c| [c.name, c.id] },
+            { include_blank: "Select Customer" },
+            class: "form-select",
+            id: "billed-to-customer" %>
+    </div>
+
+    <div class="col-md-8 d-none" id="company-name-wrapper">
+        <%= f.text_field :billed_to_name,
+            class: "form-control",
+            placeholder: "Company Name" %>
+    </div>
+    </div>
+
+    <div class="row mb-3">
+    <div class="col">
+        <%= f.text_field :billed_to_phone,
+            class: "form-control",
+            placeholder: "Phone",
+            id: "billed-phone" %>
+    </div>
+    <div class="col">
+        <%= f.email_field :billed_to_email,
+            class: "form-control",
+            placeholder: "Email",
+            id: "billed-email" %>
+    </div>
+    </div>
+
+
+  <hr>
+
+  <h5>Add Bookings</h5>
+  <div class="mb-3">
+    <% @bookings.where(id: params[:booking_ids]).each do |b| %>
+      <div class="form-check">
+        <%= check_box_tag "booking_ids[]", b.id, false, class: "form-check-input" %>
+        <%= label_tag nil, "Room #{b.room&.room_number} - #{b.room.room_type} (#{b.check_in.to_date} → #{b.check_out.to_date}) - #{b.room.rate}", class: "form-check-label" %>
+      </div>
+    <% end %>
+  </div>
+
+  <hr>
+
+  <h5>Invoice Settings</h5>
+  <div class="row mb-3">
+    <div class="col">
+      <%= f.select :discount_type, ["percentage", "flat"], {}, class: "form-select" %>
+    </div>
+    <div class="col">
+      <%= f.number_field :discount_value, class: "form-control", placeholder: "Discount" %>
+    </div>
+    <div class="col">
+      <%= f.number_field :tax_rate, class: "form-control", placeholder: "Tax %" %>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <%= f.text_area :notes, class: "form-control", rows: 3, placeholder: "Internal notes" %>
+  </div>
+
+  <%= f.submit "Create Invoice", class: "btn btn-primary" %>
+
+<% end %>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+    const typeSelect     = document.getElementById("billed-to-type");
+    const customerWrap   = document.getElementById("customer-select-wrapper");
+    const companyWrap    = document.getElementById("company-name-wrapper");
+    const customerSelect = document.getElementById("billed-to-customer");
+    const phoneField     = document.getElementById("billed-phone");
+    const emailField     = document.getElementById("billed-email");
+
+    // Toggle Customer / Company UI
+    function toggleBillingType() {
+        if (typeSelect.value === "Customer") {
+        customerWrap.classList.remove("d-none");
+        companyWrap.classList.add("d-none");
+        } else {
+        customerWrap.classList.add("d-none");
+        companyWrap.classList.remove("d-none");
+        phoneField.value = "";
+        emailField.value = "";
+        }
+    }
+
+    toggleBillingType();
+    typeSelect.addEventListener("change", toggleBillingType);
+
+    // Fetch customer details
+    customerSelect.addEventListener("change", function () {
+        const customerId = this.value;
+        if (!customerId) return;
+
+        fetch(`/customers/${customerId}.json`)
+        .then(res => res.json())
+        .then(data => {
+            phoneField.value = data.phone || "";
+            emailField.value = data.email || "";
+        });
+    });
+
+    });
+</script>
