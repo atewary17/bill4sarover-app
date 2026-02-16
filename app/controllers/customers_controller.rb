@@ -12,7 +12,7 @@ class CustomersController < ApplicationController
 
   # GET /customers/new
   def new
-    @customer = Customer.new
+    @customer = Customer.new(is_guest: false)
   end
 
   # GET /customers/1/edit
@@ -74,7 +74,14 @@ class CustomersController < ApplicationController
     end
 
     # Only allow a list of trusted parameters through.
+    
     def customer_params
-      params.require(:customer).permit(:name, :phone, :email)
+      params.require(:customer).permit(
+        :name,
+        :phone,
+        :email,
+        :is_guest,
+        :payer_id
+      )
     end
 end
