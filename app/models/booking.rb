@@ -1,6 +1,8 @@
 class Booking < ApplicationRecord
   belongs_to :customer
   belongs_to :room, optional: true
+  has_many :invoice_bookings, dependent: :destroy
+  has_many :invoices, through: :invoice_bookings
 
   validate :room_availability
 

@@ -1,77 +1,98 @@
 <h1>Bookings</h1>
 
-  <div class="card mb-4">
-    <div class="card-body">
-      <%= form_with url: bookings_path, method: :get, local: true, class: "row g-3" do %>
+<div class="card mb-4">
+  <div class="card-body">
 
-        <div class="col-md-4">
-          <label class="form-label">From</label>
-          <%= date_field_tag :from, @from, class: "form-control" %>
-        </div>
+    <!-- FILTER FORM -->
+    <%= form_with url: bookings_path, method: :get, local: true, class: "row g-3 mb-3" do %>
+      <div class="col-md-4">
+        <label class="form-label">From</label>
+        <%= date_field_tag :from, @from, class: "form-control" %>
+      </div>
 
-        <div class="col-md-4">
-          <label class="form-label">To</label>
-          <%= date_field_tag :to, @to, class: "form-control" %>
-        </div>
+      <div class="col-md-4">
+        <label class="form-label">To</label>
+        <%= date_field_tag :to, @to, class: "form-control" %>
+      </div>
 
-        <div class="col-md-4 d-flex align-items-end gap-2">
-          <%= submit_tag "Filter", class: "btn btn-primary" %>
-          <%= link_to "Reset", bookings_path, class: "btn btn-outline-secondary" %>
-        </div>
+      <div class="col-md-4 d-flex align-items-end gap-2">
+        <%= submit_tag "Filter", class: "btn btn-primary" %>
+        <%= link_to "Reset", bookings_path, class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
 
-      <% end %>
-    </div>
+    <!-- GENERATE INVOICE FORM -->
+    <%= form_with url: new_invoice_path, method: :get, local: true, id: "invoice-form" do %>
+
+      <div class="mb-3">
+        <%= submit_tag "Generate Invoice",
+              class: "btn btn-success",
+              data: { confirm: "Generate invoice for selected bookings?" } %>
+      </div>
+
+      <table id="bookings-table" class="table table-striped table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>
+              <input type="checkbox" id="select-all">
+            </th>
+            <th>Customer</th>
+            <th>Room</th>
+            <th>Check In</th>
+            <th>Check Out</th>
+            <th>Guests</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <% @bookings.each do |b| %>
+            <tr>
+              <td>
+                <%= check_box_tag "booking_ids[]", b.id, false, class: "booking-checkbox" %>
+              </td>
+              <td><%= b.customer.name %></td>
+              <td><%= b.room&.room_number || "Banquet" %></td>
+              <td><%= b.check_in.strftime("%d %b %Y %H:%M") %></td>
+              <td><%= b.check_out.strftime("%d %b %Y %H:%M") %></td>
+              <td><%= b.adults + b.children %></td>
+              <td>
+                <span class="badge 
+                  <%= case b.status
+                    when "booked" then "bg-primary"
+                    when "checked_in" then "bg-success"
+                    when "checked_out" then "bg-secondary"
+                    when "cancelled" then "bg-danger"
+                  end %>">
+                  <%= b.status.humanize %>
+                </span>
+              </td>
+              <td>
+                <%= link_to "View", booking_path(b), class: "btn btn-sm btn-outline-primary" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+
+    <% end %>
   </div>
+</div>
 
+<%= link_to "New Booking", new_booking_path, class: "btn btn-primary" %>
 
-  <table id="bookings-table" class="table table-striped table-hover align-middle">
-    <thead class="table-light">
-      <tr>
-        <th>Customer</th>
-        <th>Room</th>
-        <th>Check In</th>
-        <th>Check Out</th>
-        <th>Guests</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      <% @bookings.each do |b| %>
-        <tr>
-          <td><%= b.customer.name %></td>
-          <td><%= b.room&.room_number || "Banquet" %></td>
-          <td><%= b.check_in.strftime("%d %b %Y %H:%M") %></td>
-          <td><%= b.check_out.strftime("%d %b %Y %H:%M") %></td>
-          <td><%= b.adults + b.children %></td>
-          <td>
-            <span class="badge 
-              <%= case b.status
-                when "booked" then "bg-primary"
-                when "checked_in" then "bg-success"
-                when "checked_out" then "bg-secondary"
-                when "cancelled" then "bg-danger"
-              end %>">
-              <%= b.status.humanize %>
-            </span>
-          </td>
-          <td>
-            <%= link_to "View", booking_path(b), class: "btn btn-sm btn-outline-primary" %>
-          </td>
-        </tr>
-      <% end %>
-    </tbody>
-  </table>
-
-<br>
-<%= link_to "New Booking", new_booking_path %>
 <script>
   $(document).ready(function () {
-    $('#bookings-table').DataTable({
+    const table = $('#bookings-table').DataTable({
       columnDefs: [
-        { orderable: false, targets: [4,6] } 
+        { orderable: false, targets: [0,5,7] }
       ]
+    });
+
+    // Select all
+    $('#select-all').on('click', function(){
+      $('.booking-checkbox').prop('checked', this.checked);
     });
   });
 </script>

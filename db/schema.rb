@@ -10,6 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
+
 ActiveRecord::Schema[7.1].define(version: 2026_02_16_173528) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -38,6 +39,63 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_16_173528) do
     t.boolean "is_guest"
     t.bigint "payer_id"
     t.index ["payer_id"], name: "index_customers_on_payer_id"
+  end
+
+  create_table "invoice_bookings", force: :cascade do |t|
+    t.bigint "invoice_id", null: false
+    t.bigint "booking_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["booking_id"], name: "index_invoice_bookings_on_booking_id"
+    t.index ["invoice_id"], name: "index_invoice_bookings_on_invoice_id"
+  end
+
+  create_table "invoice_items", force: :cascade do |t|
+    t.bigint "invoice_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "description"
+    t.decimal "quantity", precision: 10, scale: 2
+    t.decimal "unit_price", precision: 12, scale: 2
+    t.string "line_discount_type"
+    t.decimal "line_discount_value", precision: 12, scale: 2
+    t.decimal "line_discount_amount", precision: 12, scale: 2
+    t.decimal "gross_amount", precision: 14, scale: 2
+    t.decimal "line_total", precision: 14, scale: 2
+    t.decimal "tax_rate", precision: 5, scale: 2
+    t.decimal "tax_amount", precision: 12, scale: 2
+    t.string "source_type"
+    t.bigint "source_id"
+    t.jsonb "metadata"
+    t.index ["invoice_id"], name: "index_invoice_items_on_invoice_id"
+    t.index ["source_type", "source_id"], name: "index_invoice_items_on_source_type_and_source_id"
+  end
+
+  create_table "invoices", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "invoice_number"
+    t.integer "billed_to_id"
+    t.string "billed_to_type"
+    t.string "billed_to_name"
+    t.string "billed_to_phone"
+    t.string "billed_to_email"
+    t.string "company_gst_number"
+    t.decimal "subtotal", precision: 10, scale: 2
+    t.string "discount_type"
+    t.decimal "discount_value", precision: 10, scale: 2
+    t.decimal "discount_amount", precision: 10, scale: 2
+    t.decimal "taxable_amount", precision: 10, scale: 2
+    t.decimal "tax_rate", precision: 5, scale: 2
+    t.decimal "tax_amount", precision: 10, scale: 2
+    t.decimal "total_amount", precision: 10, scale: 2
+    t.string "status"
+    t.date "due_date"
+    t.datetime "issued_at"
+    t.text "notes"
+    t.text "terms_and_conditions"
+    t.index ["billed_to_type", "billed_to_id"], name: "index_invoices_on_billed_to_type_and_billed_to_id"
+    t.index ["invoice_number"], name: "index_invoices_on_invoice_number", unique: true
   end
 
   create_table "invoice_bookings", force: :cascade do |t|

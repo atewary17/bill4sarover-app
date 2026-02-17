@@ -1,4 +1,11 @@
 Rails.application.routes.draw do
+  get 'invoices/index'
+  get 'invoices/show'
+  get 'invoices/new'
+  get 'invoices/create'
+  get 'invoices/edit'
+  get 'invoices/update'
+  get 'invoices/destroy'
   
   resources :customers do
     collection do
@@ -33,5 +40,7 @@ Rails.application.routes.draw do
       patch :cancel
     end
   end
+
+  resources :invoices
 
 end
