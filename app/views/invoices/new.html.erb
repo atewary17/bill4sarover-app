@@ -1,121 +1,504 @@
-<h1>New Invoice</h1>
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-10">
 
-<%= form_with model: @invoice, class: "card p-4" do |f| %>
-
-    <h5>Billed To</h5>
-
-    <div class="row mb-3">
-    <div class="col-md-4">
-        <%= f.select :billed_to_type,
-            ["Customer", "Company"],
-            {},
-            class: "form-select",
-            id: "billed-to-type" %>
-    </div>
-
-    <div class="col-md-8" id="customer-select-wrapper">
-        <%= f.select :billed_to_id,
-            @customers.map { |c| [c.name, c.id] },
-            { include_blank: "Select Customer" },
-            class: "form-select",
-            id: "billed-to-customer" %>
-    </div>
-
-    <div class="col-md-8 d-none" id="company-name-wrapper">
-        <%= f.text_field :billed_to_name,
-            class: "form-control",
-            placeholder: "Company Name" %>
-    </div>
-    </div>
-
-    <div class="row mb-3">
-    <div class="col">
-        <%= f.text_field :billed_to_phone,
-            class: "form-control",
-            placeholder: "Phone",
-            id: "billed-phone" %>
-    </div>
-    <div class="col">
-        <%= f.email_field :billed_to_email,
-            class: "form-control",
-            placeholder: "Email",
-            id: "billed-email" %>
-    </div>
-    </div>
-
-
-  <hr>
-
-  <h5>Add Bookings</h5>
-  <div class="mb-3">
-    <% @bookings.where(id: params[:booking_ids]).each do |b| %>
-      <div class="form-check">
-        <%= check_box_tag "booking_ids[]", b.id, false, class: "form-check-input" %>
-        <%= label_tag nil, "Room #{b.room&.room_number} - #{b.room.room_type} (#{b.check_in.to_date} → #{b.check_out.to_date}) - #{b.room.rate}", class: "form-check-label" %>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">New Invoice</h1>
+        <%= link_to "Back to Invoices", invoices_path, class: "btn btn-secondary" %>
       </div>
-    <% end %>
-  </div>
 
-  <hr>
+      <%= form_with model: @invoice do |f| %>
 
-  <h5>Invoice Settings</h5>
-  <div class="row mb-3">
-    <div class="col">
-      <%= f.select :discount_type, ["percentage", "flat"], {}, class: "form-select" %>
+        <!-- ── Billed To ─────────────────────────────────────────────── -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header text-white" style="background-color: #2c3e50;">
+            <h5 class="mb-0">Billed To</h5>
+          </div>
+          <div class="card-body">
+            <div class="row mb-3">
+              <div class="col-md-6" id="customer-select-wrapper">
+                <label class="form-label fw-bold">Select Customer</label>
+                <%= f.select :billed_to_id,
+                    @customers.map { |c| [c.name, c.id] },
+                    { include_blank: "Select Customer" },
+                    class: "form-select",
+                    id: "billed-to-customer" %>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Phone</label>
+                <%= f.text_field :billed_to_phone,
+                    class: "form-control",
+                    placeholder: "Phone",
+                    id: "billed-phone" %>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Email</label>
+                <%= f.email_field :billed_to_email,
+                    class: "form-control",
+                    placeholder: "Email",
+                    id: "billed-email" %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Booking Items (only shown if bookings present) ────────── -->
+        <% if @bookings.any? %>
+          <div class="card shadow-sm mb-4">
+            <div class="card-header text-white" style="background-color: #2c3e50;">
+              <h5 class="mb-0">Booking Items</h5>
+            </div>
+
+            <div class="px-3 py-2 border-bottom d-none d-md-block" style="background-color: #f1f3f5;">
+              <div class="row fw-bold text-muted small">
+                <div class="col-md-4">Description</div>
+                <div class="col-md-2 text-center">Dates</div>
+                <div class="col-md-1 text-center">Nights</div>
+                <div class="col-md-2 text-center">Rate/Night</div>
+                <div class="col-md-3 text-end">Amount</div>
+              </div>
+            </div>
+
+            <div class="card-body p-0">
+              <% @bookings.each_with_index do |b, index| %>
+                <% nights     = ((b.check_out - b.check_in) / 1.day).to_i %>
+                <% unit_price = b.room&.rate || 0 %>
+                <% gross      = nights * unit_price %>
+
+                <div class="booking-item border-bottom"
+                     data-booking-id="<%= b.id %>"
+                     style="background-color: <%= index.even? ? '#ffffff' : '#f8f9fa' %>;">
+
+                  <div class="row align-items-center px-3 py-3">
+                    <div class="col-md-4">
+                      <div class="d-flex align-items-start gap-2">
+                        <%= check_box_tag "booking_ids[]", b.id, true,
+                            class: "form-check-input mt-1 booking-checkbox",
+                            data: { booking_id: b.id, nights: nights, unit_price: unit_price } %>
+                        <div>
+                          <strong>Room <%= b.room&.room_number %></strong>
+                          <span class="badge bg-secondary ms-1" style="font-size: 0.7rem;"><%= b.room&.room_type %></span>
+                          <br>
+                          <small class="text-muted">Booking #<%= b.id %></small>
+                          <br>
+                          <small class="text-muted"><%= b.customer&.name %></small>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-2 text-center">
+                      <small>
+                        <%= b.check_in.strftime("%d %b %Y") %><br>
+                        <span class="text-muted">↓</span><br>
+                        <%= b.check_out.strftime("%d %b %Y") %>
+                      </small>
+                    </div>
+                    <div class="col-md-1 text-center">
+                      <span class="badge bg-secondary"><%= nights %></span>
+                      <br><small class="text-muted" style="font-size: 0.65rem;">nights</small>
+                    </div>
+                    <div class="col-md-2 text-center">
+                      <small>₹<%= number_with_precision(unit_price, precision: 2, delimiter: ',') %></small>
+                    </div>
+                    <div class="col-md-3 text-end">
+                      <strong class="booking-gross-display" data-booking-id="<%= b.id %>">
+                        ₹<%= number_with_precision(gross, precision: 2, delimiter: ',') %>
+                      </strong>
+                    </div>
+                  </div>
+
+                  <!-- Service charges for this booking -->
+                  <div class="extra-items-container px-4 pb-2" id="extra-items-<%= b.id %>">
+                    <div class="row fw-bold text-muted small mb-1 d-none px-1" id="extra-header-<%= b.id %>">
+                      <div class="col-md-5">Service Description</div>
+                      <div class="col-md-2 text-center">Qty</div>
+                      <div class="col-md-2 text-center">Unit Price</div>
+                      <div class="col-md-2 text-end">Total</div>
+                      <div class="col-md-1"></div>
+                    </div>
+                  </div>
+
+                  <div class="px-4 pb-3">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-secondary add-booking-line-item"
+                            data-booking-id="<%= b.id %>"
+                            style="font-size: 0.75rem;">
+                      + Add Service Charge
+                    </button>
+                  </div>
+
+                </div>
+              <% end %>
+            </div>
+
+            <!-- Booking Subtotal -->
+            <div class="card-footer bg-light">
+              <div class="row">
+                <div class="col-md-5 offset-md-7">
+                  <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Booking Subtotal</span>
+                    <strong id="booking-subtotal">₹0.00</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- ── Adhoc Items ────────────────────────────────────────────── -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header text-white d-flex justify-content-between align-items-center"
+               style="background-color: #2c3e50;">
+            <h5 class="mb-0">Additional Items</h5>
+            <small class="text-white-50">Standalone charges not tied to any booking</small>
+          </div>
+
+          <div class="px-3 py-2 border-bottom d-none d-md-block" style="background-color: #f1f3f5;">
+            <div class="row fw-bold text-muted small">
+              <div class="col-md-5">Description</div>
+              <div class="col-md-2 text-center">Qty</div>
+              <div class="col-md-2 text-center">Unit Price</div>
+              <div class="col-md-2 text-end">Total</div>
+              <div class="col-md-1"></div>
+            </div>
+          </div>
+
+          <div class="card-body p-0">
+            <div id="adhoc-items-container" class="p-3">
+              <p class="text-muted text-center small mb-0" id="adhoc-empty-msg">
+                No additional items yet. Click below to add.
+              </p>
+            </div>
+          </div>
+
+          <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+            <button type="button"
+                    id="add-adhoc-item"
+                    class="btn btn-sm text-white"
+                    style="background-color: #007bff; font-size: 0.8rem;">
+              + Add Item
+            </button>
+            <div>
+              <span class="text-muted me-2">Items Subtotal:</span>
+              <strong id="adhoc-subtotal">₹0.00</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Invoice Settings ──────────────────────────────────────── -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header text-white" style="background-color: #2c3e50;">
+            <h5 class="mb-0">Invoice Settings</h5>
+          </div>
+          <div class="card-body">
+            <div class="row mb-3">
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Discount Type</label>
+                <%= f.select :discount_type,
+                    [["Percentage (%)", "percentage"], ["Flat (₹)", "flat"]],
+                    {},
+                    class: "form-select",
+                    id: "invoice_discount_type" %>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Discount Value</label>
+                <%= f.number_field :discount_value,
+                    class: "form-control", placeholder: "0.00",
+                    min: 0, step: 0.01,
+                    id: "invoice_discount_value" %>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Tax Rate (%)</label>
+                <%= f.number_field :tax_rate,
+                    class: "form-control", placeholder: "0.00",
+                    min: 0, step: 0.01,
+                    id: "invoice_tax_rate" %>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Due Date</label>
+                <%= f.date_field :due_date, class: "form-control" %>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Issued At</label>
+                <%= f.datetime_local_field :issued_at, class: "form-control" %>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Notes</label>
+              <%= f.text_area :notes, class: "form-control", rows: 3, placeholder: "Internal notes..." %>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Terms & Conditions</label>
+              <%= f.text_area :terms_and_conditions, class: "form-control", rows: 3, placeholder: "Terms and conditions..." %>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Grand Total Summary ───────────────────────────────────── -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-5 offset-md-7">
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="text-muted">Subtotal</span>
+                  <strong id="summary-subtotal">₹0.00</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="text-muted">Discount</span>
+                  <strong class="text-danger" id="summary-discount">— ₹0.00</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="text-muted">Tax</span>
+                  <strong class="text-muted" id="summary-tax">₹0.00</strong>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between">
+                  <span class="fw-bold fs-5">Total</span>
+                  <strong class="fs-5 text-success" id="summary-total">₹0.00</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Submit ────────────────────────────────────────────────── -->
+        <div class="d-flex justify-content-end gap-2 mb-5">
+          <%= link_to "Cancel", invoices_path, class: "btn btn-secondary" %>
+          <%= f.submit "Create Invoice", class: "btn text-white", style: "background-color: #007bff;" %>
+        </div>
+
+      <% end %>
     </div>
-    <div class="col">
-      <%= f.number_field :discount_value, class: "form-control", placeholder: "Discount" %>
-    </div>
-    <div class="col">
-      <%= f.number_field :tax_rate, class: "form-control", placeholder: "Tax %" %>
-    </div>
   </div>
+</div>
 
-  <div class="mb-3">
-    <%= f.text_area :notes, class: "form-control", rows: 3, placeholder: "Internal notes" %>
-  </div>
-
-  <%= f.submit "Create Invoice", class: "btn btn-primary" %>
-
-<% end %>
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
+  document.addEventListener("DOMContentLoaded", function () {
 
-    const typeSelect     = document.getElementById("billed-to-type");
-    const customerWrap   = document.getElementById("customer-select-wrapper");
-    const companyWrap    = document.getElementById("company-name-wrapper");
+    // ── Customer autofill ────────────────────────────────────────────
     const customerSelect = document.getElementById("billed-to-customer");
     const phoneField     = document.getElementById("billed-phone");
     const emailField     = document.getElementById("billed-email");
 
-    // Toggle Customer / Company UI
-    function toggleBillingType() {
-        if (typeSelect.value === "Customer") {
-        customerWrap.classList.remove("d-none");
-        companyWrap.classList.add("d-none");
-        } else {
-        customerWrap.classList.add("d-none");
-        companyWrap.classList.remove("d-none");
-        phoneField.value = "";
-        emailField.value = "";
-        }
+    if (customerSelect) {
+      customerSelect.addEventListener("change", function () {
+        const id = this.value;
+        if (!id) return;
+        fetch(`/customers/${id}.json`)
+          .then(r => r.json())
+          .then(d => {
+            if (phoneField) phoneField.value = d.phone || "";
+            if (emailField) emailField.value = d.email || "";
+          });
+      });
     }
 
-    toggleBillingType();
-    typeSelect.addEventListener("change", toggleBillingType);
+    // ── Shared counter for all dynamic line items ────────────────────
+    let lineIndex = 0;
 
-    // Fetch customer details
-    customerSelect.addEventListener("change", function () {
-        const customerId = this.value;
-        if (!customerId) return;
+    // ── Booking service charge items ─────────────────────────────────
+    document.querySelectorAll(".add-booking-line-item").forEach(btn => {
+      btn.addEventListener("click", function () {
+        const bookingId = this.dataset.bookingId;
+        const container = document.getElementById(`extra-items-${bookingId}`);
+        const header    = document.getElementById(`extra-header-${bookingId}`);
+        if (header) header.classList.remove("d-none");
 
-        fetch(`/customers/${customerId}.json`)
-        .then(res => res.json())
-        .then(data => {
-            phoneField.value = data.phone || "";
-            emailField.value = data.email || "";
+        container.insertAdjacentHTML("beforeend", buildLineItemHtml(lineIndex, "extra_items", bookingId));
+        attachLineListeners(lineIndex, "extra_items");
+        lineIndex++;
+        recalculate();
+      });
+    });
+
+    // ── Adhoc items ──────────────────────────────────────────────────
+    const adhocContainer = document.getElementById("adhoc-items-container");
+    const adhocEmptyMsg  = document.getElementById("adhoc-empty-msg");
+
+    document.getElementById("add-adhoc-item").addEventListener("click", function () {
+      if (adhocEmptyMsg) adhocEmptyMsg.classList.add("d-none");
+      adhocContainer.insertAdjacentHTML("beforeend", buildLineItemHtml(lineIndex, "adhoc_items", null));
+      attachLineListeners(lineIndex, "adhoc_items");
+      lineIndex++;
+      recalculate();
+    });
+
+    // ── Build line item HTML ─────────────────────────────────────────
+    function buildLineItemHtml(index, namespace, bookingId) {
+      return `
+        <div class="extra-line-item row align-items-center g-2 mb-2 py-2 px-1 rounded"
+             style="background-color: ${namespace === 'adhoc_items' ? '#fff8e1' : '#eef2f7'};
+                    border-left: 3px solid ${namespace === 'adhoc_items' ? '#ffc107' : '#007bff'};"
+             data-line-index="${index}"
+             data-namespace="${namespace}">
+
+          <div class="col-md-5">
+            <input type="text"
+                   name="${namespace}[${index}][description]"
+                   class="form-control form-control-sm"
+                   placeholder="${namespace === 'adhoc_items' ? 'e.g. Snacks, Spa, Taxi' : 'e.g. Room Service, Laundry'}"
+                   required>
+          </div>
+
+          <div class="col-md-2">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text">Qty</span>
+              <input type="number"
+                     name="${namespace}[${index}][quantity]"
+                     class="form-control form-control-sm line-qty"
+                     data-line-index="${index}"
+                     data-namespace="${namespace}"
+                     min="1" step="1" value="1">
+            </div>
+          </div>
+
+          <div class="col-md-2">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text">₹</span>
+              <input type="number"
+                     name="${namespace}[${index}][unit_price]"
+                     class="form-control form-control-sm line-price"
+                     data-line-index="${index}"
+                     data-namespace="${namespace}"
+                     min="0" step="0.01" value="0">
+            </div>
+          </div>
+
+          <div class="col-md-2 text-end">
+            <strong class="line-total-display" data-line-index="${index}">₹0.00</strong>
+          </div>
+
+          <div class="col-md-1 text-end">
+            <button type="button"
+                    class="btn btn-sm btn-outline-danger remove-line-item"
+                    data-line-index="${index}"
+                    data-namespace="${namespace}"
+                    ${bookingId ? `data-booking-id="${bookingId}"` : ''}>
+              &times;
+            </button>
+          </div>
+
+          ${bookingId ? `<input type="hidden" name="${namespace}[${index}][booking_id]" value="${bookingId}">` : ''}
+        </div>
+      `;
+    }
+
+    // ── Attach input listeners ───────────────────────────────────────
+    function attachLineListeners(index, namespace) {
+      const qtyEl   = document.querySelector(`[name="${namespace}[${index}][quantity]"]`);
+      const priceEl = document.querySelector(`[name="${namespace}[${index}][unit_price]"]`);
+      [qtyEl, priceEl].forEach(el => {
+        if (el) el.addEventListener("input", () => {
+          updateLineTotal(index);
+          recalculate();
         });
+      });
+    }
+
+    // ── Update single line total display ────────────────────────────
+    function updateLineTotal(index) {
+      const namespace = document.querySelector(`[data-line-index="${index}"]`)?.dataset.namespace;
+      const qty       = parseFloat(document.querySelector(`[name="${namespace}[${index}][quantity]"]`)?.value) || 0;
+      const price     = parseFloat(document.querySelector(`[name="${namespace}[${index}][unit_price]"]`)?.value) || 0;
+      const el        = document.querySelector(`.line-total-display[data-line-index="${index}"]`);
+      if (el) el.textContent = `₹${(qty * price).toFixed(2)}`;
+    }
+
+    // ── Remove line item ─────────────────────────────────────────────
+    document.addEventListener("click", function (e) {
+      if (!e.target.classList.contains("remove-line-item")) return;
+
+      const bookingId = e.target.dataset.bookingId;
+      const namespace = e.target.dataset.namespace;
+      e.target.closest(".extra-line-item").remove();
+
+      // Hide booking service header if empty
+      if (bookingId) {
+        const container = document.getElementById(`extra-items-${bookingId}`);
+        const header    = document.getElementById(`extra-header-${bookingId}`);
+        if (container && container.querySelectorAll(".extra-line-item").length === 0) {
+          if (header) header.classList.add("d-none");
+        }
+      }
+
+      // Show adhoc empty message if no items left
+      if (namespace === "adhoc_items") {
+        const remaining = adhocContainer.querySelectorAll(".extra-line-item").length;
+        if (remaining === 0 && adhocEmptyMsg) adhocEmptyMsg.classList.remove("d-none");
+      }
+
+      recalculate();
     });
 
+    // ── Booking checkbox listeners ───────────────────────────────────
+    document.querySelectorAll(".booking-checkbox").forEach(cb => {
+      cb.addEventListener("change", recalculate);
     });
+
+    // ── Invoice settings listeners ───────────────────────────────────
+    const discountTypeEl  = document.getElementById("invoice_discount_type");
+    const discountValueEl = document.getElementById("invoice_discount_value");
+    const taxRateEl       = document.getElementById("invoice_tax_rate");
+
+    discountTypeEl?.addEventListener("change", recalculate);
+    discountValueEl?.addEventListener("input", recalculate);
+    taxRateEl?.addEventListener("input", recalculate);
+
+    // ── Main recalculate ─────────────────────────────────────────────
+    function recalculate() {
+      let bookingSubtotal = 0;
+      let adhocSubtotal   = 0;
+
+      // Booking rows
+      document.querySelectorAll(".booking-checkbox").forEach(cb => {
+        if (!cb.checked) return;
+        const bookingId = cb.dataset.bookingId;
+        const nights    = parseFloat(cb.dataset.nights) || 0;
+        const price     = parseFloat(cb.dataset.unitPrice) || 0;
+        bookingSubtotal += nights * price;
+
+        // Service charges for this booking
+        document.querySelectorAll(`#extra-items-${bookingId} .extra-line-item`).forEach(item => {
+          const idx   = item.dataset.lineIndex;
+          const qty   = parseFloat(document.querySelector(`[name="extra_items[${idx}][quantity]"]`)?.value) || 0;
+          const up    = parseFloat(document.querySelector(`[name="extra_items[${idx}][unit_price]"]`)?.value) || 0;
+          bookingSubtotal += qty * up;
+        });
+      });
+
+      // Adhoc items
+      document.querySelectorAll("#adhoc-items-container .extra-line-item").forEach(item => {
+        const idx   = item.dataset.lineIndex;
+        const qty   = parseFloat(document.querySelector(`[name="adhoc_items[${idx}][quantity]"]`)?.value) || 0;
+        const up    = parseFloat(document.querySelector(`[name="adhoc_items[${idx}][unit_price]"]`)?.value) || 0;
+        adhocSubtotal += qty * up;
+      });
+
+      const netSubtotal  = bookingSubtotal + adhocSubtotal;
+      const discType     = discountTypeEl?.value || "flat";
+      const discValue    = parseFloat(discountValueEl?.value) || 0;
+      const discAmt      = discType === "percentage" ? netSubtotal * discValue / 100 : discValue;
+      const taxable      = netSubtotal - discAmt;
+      const taxRate      = parseFloat(taxRateEl?.value) || 0;
+      const taxAmt       = taxable * taxRate / 100;
+      const total        = taxable + taxAmt;
+
+      // Update displays
+      const bookingSubEl = document.getElementById("booking-subtotal");
+      if (bookingSubEl) bookingSubEl.textContent = `₹${bookingSubtotal.toFixed(2)}`;
+
+      const adhocSubEl = document.getElementById("adhoc-subtotal");
+      if (adhocSubEl) adhocSubEl.textContent = `₹${adhocSubtotal.toFixed(2)}`;
+
+      document.getElementById("summary-subtotal").textContent = `₹${netSubtotal.toFixed(2)}`;
+      document.getElementById("summary-discount").textContent = `— ₹${discAmt.toFixed(2)}`;
+      document.getElementById("summary-tax").textContent      = `₹${taxAmt.toFixed(2)}`;
+      document.getElementById("summary-total").textContent    = `₹${total.toFixed(2)}`;
+    }
+
+    recalculate();
+  });
 </script>
