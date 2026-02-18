@@ -1,91 +1,268 @@
-
 <div class="container mt-4">
-  <div class="card shadow-sm">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <h3 class="mb-0">Booking #<%= @booking.id %></h3>
-        <span class="badge 
-          <%= case @booking.status
-            when "booked" then "bg-primary"
-            when "checked_in" then "bg-success"
-            when "checked_out" then "bg-warning"
-            when "cancelled" then "bg-danger"
-          end %>">
-          <%= @booking.status.humanize %>
-        </span>
-    </div>
+  <div class="row justify-content-center">
+    <div class="col-md-10">
 
-    <div class="card-body">
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <strong>Customer</strong><br>
-          <%= @booking.customer.name %>
-        </div>
-        <div class="col-md-6">
-          <strong>Room</strong><br>
-          <%= @booking.room&.room_number || "Banquet" %>
-        </div>
-      </div>
-
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <strong>Check In</strong><br>
-          <%= l @booking.check_in, format: :long %>
-        </div>
-        <div class="col-md-6">
-          <strong>Check Out</strong><br>
-          <%= l @booking.check_out, format: :long %>
-        </div>
-      </div>
-
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <strong>Adults</strong><br>
-          <%= @booking.adults %>
-        </div>
-        <div class="col-md-6">
-          <strong>Children</strong><br>
-          <%= @booking.children %>
-        </div>
-      </div>
-
-      <% if @booking.comment.present? %>
-        <div class="alert alert-info mt-3">
-          <strong>Notes</strong><br>
-          <%= simple_format(@booking.comment) %>
+      <% if notice %>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <%= notice %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
       <% end %>
-    </div>
 
-    <!-- ACTION BAR -->
-    <div class="card-footer d-flex justify-content-between align-items-center">
-      <div>
-        <%= link_to "Edit", edit_booking_path(@booking), class: "btn btn-outline-primary me-2" %>
-        <%= link_to "Back", bookings_path, class: "btn btn-outline-secondary" %>
+      <!-- ── Page Header ───────────────────────────────────────────── -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="mb-0">
+            Booking
+            <span class="text-muted fs-4">#<%= @booking.id %></span>
+          </h1>
+          <small class="text-muted">
+            Created <%= @booking.created_at.strftime("%d %b %Y, %H:%M") %>
+          </small>
+        </div>
+        <div>
+          <%= link_to "Back to Bookings", bookings_path, class: "btn btn-secondary" %>
+        </div>
       </div>
 
-      <div>
-        <% if @booking.booked? %>
-          <%= button_to "Check In",
-                check_in_booking_path(@booking),
-                method: :patch,
-                class: "btn btn-success me-2" %>
-        <% end %>
+      <!-- ── Booking Details Card ─────────────────────────────────────── -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header text-white d-flex justify-content-between align-items-center"
+             style="background-color: #2c3e50;">
+          <h5 class="mb-0">Booking Details</h5>
+          <span class="badge fs-6
+            <%= case @booking.status
+              when "booked"      then "bg-primary"
+              when "checked_in"  then "bg-success"
+              when "checked_out" then "bg-secondary"
+              when "cancelled"   then "bg-danger"
+              when "invoiced"    then "bg-info"
+            end %>">
+            <%= @booking.status.humanize %>
+          </span>
+        </div>
 
-        <% if @booking.checked_in? %>
-          <%= button_to "Check Out",
-                check_out_booking_path(@booking),
-                method: :patch,
-                class: "btn btn-warning me-2" %>
-        <% end %>
+        <div class="card-body">
 
-        <% if @booking.booked? %>
-          <%= button_to "Cancel",
-                cancel_booking_path(@booking),
-                method: :patch,
-                data: { confirm: "Are you sure?" },
-                class: "btn btn-danger" %>
-        <% end %>
+          <!-- Customer & Room -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <p class="text-muted small fw-bold mb-1 text-uppercase">Customer</p>
+              <h6 class="mb-1">
+                <%= link_to @booking.customer.name, 
+                    customer_path(@booking.customer), 
+                    class: "text-decoration-none" %>
+              </h6>
+              <% if @booking.customer.phone.present? %>
+                <small class="text-muted d-block">📞 <%= @booking.customer.phone %></small>
+              <% end %>
+              <% if @booking.customer.email.present? %>
+                <small class="text-muted d-block">✉️ <%= @booking.customer.email %></small>
+              <% end %>
+              <% if @booking.customer.is_guest && @booking.customer.payer.present? %>
+                <small class="text-muted d-block">
+                  Payer: <%= link_to @booking.customer.payer.name, 
+                             customer_path(@booking.customer.payer),
+                             class: "text-decoration-none" %>
+                </small>
+              <% end %>
+            </div>
+
+            <div class="col-md-6">
+              <p class="text-muted small fw-bold mb-1 text-uppercase">Room Details</p>
+              <% if @booking.room.present? %>
+                <h6 class="mb-1">
+                  Room <%= @booking.room.room_number %>
+                  <span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">
+                    <%= @booking.room.room_type %>
+                  </span>
+                </h6>
+                <small class="text-muted d-block">Rate: ₹<%= number_with_precision(@booking.room.rate, precision: 2, delimiter: ',') %>/night</small>
+              <% else %>
+                <h6 class="mb-1 text-muted">Banquet Hall</h6>
+              <% end %>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Check In/Out & Duration -->
+          <div class="row mb-4">
+            <div class="col-md-4">
+              <p class="text-muted small fw-bold mb-1 text-uppercase">Check In</p>
+              <h6 class="mb-0"><%= @booking.check_in.strftime("%d %b %Y") %></h6>
+              <small class="text-muted"><%= @booking.check_in.strftime("%H:%M") %></small>
+            </div>
+
+            <div class="col-md-4">
+              <p class="text-muted small fw-bold mb-1 text-uppercase">Check Out</p>
+              <h6 class="mb-0"><%= @booking.check_out.strftime("%d %b %Y") %></h6>
+              <small class="text-muted"><%= @booking.check_out.strftime("%H:%M") %></small>
+            </div>
+
+            <div class="col-md-4">
+              <p class="text-muted small fw-bold mb-1 text-uppercase">Duration</p>
+              <h6 class="mb-0">
+                <%= ((@booking.check_out - @booking.check_in) / 1.day).to_i %> nights
+              </h6>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Guests -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <p class="text-muted small fw-bold mb-1 text-uppercase">Adults</p>
+              <h6 class="mb-0">
+                <span class="badge bg-primary"><%= @booking.adults %></span>
+              </h6>
+            </div>
+
+            <div class="col-md-6">
+              <p class="text-muted small fw-bold mb-1 text-uppercase">Children</p>
+              <h6 class="mb-0">
+                <span class="badge bg-info"><%= @booking.children %></span>
+              </h6>
+            </div>
+          </div>
+
+          <!-- Total Guests -->
+          <div class="row mb-4">
+            <div class="col-md-12">
+              <div class="alert alert-light border mb-0">
+                <strong>Total Guests:</strong> 
+                <%= @booking.adults + @booking.children %> 
+                (<%= @booking.adults %> adults, <%= @booking.children %> children)
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes/Comments -->
+          <% if @booking.comment.present? %>
+            <hr>
+            <div class="row">
+              <div class="col-md-12">
+                <p class="text-muted small fw-bold mb-2 text-uppercase">Notes</p>
+                <div class="alert alert-info mb-0">
+                  <%= simple_format(@booking.comment) %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+
+        </div>
       </div>
+
+      <!-- ── Linked Invoices ───────────────────────────────────────── -->
+      <% if @booking.invoices.any? %>
+        <div class="card shadow-sm mb-4">
+          <div class="card-header text-white" style="background-color: #2c3e50;">
+            <h5 class="mb-0">Linked Invoices</h5>
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-sm table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Invoice #</th>
+                  <th>Billed To</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @booking.invoices.each do |invoice| %>
+                  <tr>
+                    <td>
+                      <strong><%= invoice.invoice_number %></strong>
+                    </td>
+                    <td><%= invoice.billed_to_name %></td>
+                    <td>
+                      <strong>₹<%= number_with_precision(invoice.total_amount, precision: 2, delimiter: ',') %></strong>
+                    </td>
+                    <td>
+                      <span class="badge
+                        <%= case invoice.status
+                          when 'draft'   then 'bg-secondary'
+                          when 'issued'  then 'bg-primary'
+                          when 'partial' then 'bg-warning text-dark'
+                          when 'paid'    then 'bg-success'
+                          when 'void'    then 'bg-danger'
+                        end %>">
+                        <%= invoice.status.humanize %>
+                      </span>
+                    </td>
+                    <td>
+                      <%= link_to "View Invoice", invoice_path(invoice),
+                          class: "badge text-white text-decoration-none",
+                          style: "background-color: #007bff; padding: 0.35rem 0.65rem; font-size: 0.75rem;" %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- ── Action Buttons ────────────────────────────────────────── -->
+      <div class="card shadow-sm mb-5">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            
+            <!-- Left Side: Edit & Back -->
+            <div class="d-flex gap-2">
+              <%= link_to "Edit Booking", edit_booking_path(@booking),
+                  class: "btn text-white",
+                  style: "background-color: #007bff;" %>
+              <%= link_to "Back to Bookings", bookings_path,
+                  class: "btn btn-secondary" %>
+            </div>
+
+            <!-- Right Side: Status Actions -->
+            <div class="d-flex gap-2">
+              <% if @booking.booked? %>
+                <%= button_to "Check In",
+                    check_in_booking_path(@booking),
+                    method: :patch,
+                    class: "btn text-white",
+                    style: "background-color: #28a745;",
+                    data: { confirm: "Confirm check-in for this booking?" } %>
+                
+                <%= button_to "Cancel Booking",
+                    cancel_booking_path(@booking),
+                    method: :patch,
+                    class: "btn btn-danger",
+                    data: { confirm: "Are you sure you want to cancel this booking?" } %>
+              <% end %>
+
+              <% if @booking.checked_in? %>
+                <%= button_to "Check Out",
+                    check_out_booking_path(@booking),
+                    method: :patch,
+                    class: "btn btn-warning",
+                    data: { confirm: "Confirm check-out for this booking?" } %>
+              <% end %>
+
+              <% if @booking.checked_out? && !@booking.invoiced? %>
+                <%= link_to "Generate Invoice",
+                    new_invoice_path(booking_ids: [@booking.id]),
+                    class: "btn text-white",
+                    style: "background-color: #17a2b8;" %>
+              <% end %>
+
+              <% if @booking.invoiced? %>
+                <button class="btn btn-secondary" disabled>
+                  Already Invoiced
+                </button>
+              <% end %>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>

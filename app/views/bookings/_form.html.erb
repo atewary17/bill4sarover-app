@@ -1,182 +1,219 @@
-<% content_for :page_js do %>
-  <script type="module">
-    import "booking_form"
-  </script>
-<% end %>
-<body data-controller="<%= controller_name %>"
-data-action="<%= action_name %>">
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-12">
 
-<div class="container-fluid py-4">
-  <div class="row g-4">
-
-    <!-- ================= LEFT: BOOKING FORM ================= -->
-    <div class="col-lg-7">
-      <div class="card shadow-sm">
-        <div class="card-body">
-
-          <h3 class="mb-4">New Booking</h3>
-
-          <%= form_with(model: booking, class: "needs-validation") do |form| %>
-
-            <% if booking.errors.any? %>
-              <div class="alert alert-danger">
-                <ul class="mb-0">
-                  <% booking.errors.each do |error| %>
-                    <li><%= error.full_message %></li>
-                  <% end %>
-                </ul>
-              </div>
-            <% end %>
-
-            <!-- Stay Duration -->
-            <div class="mb-4">
-              <h5 class="mb-3">Stay Duration</h5>
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <%= form.label :check_in, "Check In", class: "form-label" %>
-                  <%= form.datetime_field :check_in, required: true, class: "form-control" %>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                  <%= form.label :check_out, "Check Out", class: "form-label" %>
-                  <%= form.datetime_field :check_out, required: true, class: "form-control" %>
-                </div>
-              </div>
-            </div>
-
-            <!-- Room -->
-            <div class="mb-4">
-              <h5 class="mb-3">Room</h5>
-
-              <%= form.label :room_id, "Available Rooms", class: "form-label" %>
-
-              <div class="d-flex align-items-center gap-3">
-                <%= form.collection_select :room_id, [], :id, :room_number,
-                      { include_blank: "Select dates first" },
-                      { required: true, disabled: true, class: "form-select" } %>
-
-                <div id="room-status" class="fw-semibold text-muted"></div>
-              </div>
-            </div>
-
-            <!-- Customer -->
-            <div class="mb-4">
-              <h5 class="mb-3">Customer</h5>
-
-              <div class="position-relative">
-                <input
-                  type="text"
-                  id="customer_search"
-                  placeholder="Search by name or phone"
-                  autocomplete="off"
-                  class="form-control"
-                  required
-                >
-
-                <div id="customer-results"
-                     class="list-group position-absolute w-100 shadow"
-                     style="z-index: 1000;">
-                </div>
-              </div>
-
-              <%= form.hidden_field :customer_id, id: "booking_customer_id", required: true %>
-
-              <div class="mt-3">
-                <%= link_to "Add New Customer",
-                      new_customer_path,
-                      target: "_blank",
-                      class: "btn btn-outline-secondary btn-sm" %>
-              </div>
-            </div>
-
-            <!-- Guests -->
-            <div class="mb-4">
-              <h5 class="mb-3">Guests</h5>
-
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <%= form.label :adults, "Adults", class: "form-label" %>
-                  <%= form.number_field :adults,
-                        min: 1,
-                        required: true,
-                        class: "form-control" %>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                  <%= form.label :children, "Children", class: "form-label" %>
-                  <%= form.number_field :children,
-                        min: 0,
-                        value: booking.children || 0,
-                        required: true,
-                        class: "form-control" %>
-                </div>
-              </div>
-            </div>
-
-            <!-- Status -->
-          <% if action_name == "edit" %>
-            <div class="mb-4">
-              <h5 class="mb-3">Booking Status</h5>
-              <%= form.select :status,
-                    Booking.statuses.keys,
-                    {},
-                    required: true,
-                    class: "form-select" %>
-            </div>
-          <%end%>
-
-            <!-- Comment -->
-            <div class="mb-4">
-              <h5 class="mb-3">Internal Notes</h5>
-              <%= form.text_area :comment,
-                    rows: 3,
-                    placeholder: "Add any special instructions or notes for this booking...",
-                    class: "form-control" %>
-            </div>
-
-
-            <div class="d-grid">
-              <%= form.submit "Save Booking",
-                    class: "btn btn-primary btn-lg",
-                    id: "save-booking-btn" %>
-            </div>
-
-          <% end %>
-        </div>
+      <!-- Page Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0"><%= booking.new_record? ? "New Booking" : "Edit Booking" %></h1>
+        <%= link_to "Back to Bookings", bookings_path, class: "btn btn-secondary" %>
       </div>
-    </div>
 
-    <!-- ================= RIGHT: INFO PANEL ================= -->
-    <div class="col-lg-5">
-      <div class="card shadow-sm h-100">
-        <div class="card-body">
+      <div class="row g-4">
 
-          <h4 class="mb-4">Information</h4>
+        <!-- ================= LEFT: BOOKING FORM ================= -->
+        <div class="col-lg-7">
+          <div class="card shadow-sm">
+            <div class="card-header text-white" style="background-color: #2c3e50;">
+              <h5 class="mb-0">Booking Details</h5>
+            </div>
+            <div class="card-body">
 
-          <!-- Room History -->
-          <div class="mb-4">
-            <h6 class="text-muted">Room</h6>
-            <h5 id="selected-room-name">None</h5>
+              <%= form_with(model: booking, class: "needs-validation") do |form| %>
 
-            <div id="customer-history" class="mt-2">
-              <p class="text-muted">No history yet</p>
+                <% if booking.errors.any? %>
+                  <div class="alert alert-danger" role="alert">
+                    <h6 class="alert-heading">
+                      <%= pluralize(booking.errors.count, "error") %> prevented this booking from being saved:
+                    </h6>
+                    <ul class="mb-0">
+                      <% booking.errors.each do |error| %>
+                        <li><%= error.full_message %></li>
+                      <% end %>
+                    </ul>
+                  </div>
+                <% end %>
+
+                <!-- Stay Duration -->
+                <div class="mb-4">
+                  <h5 class="mb-3 text-muted">Stay Duration</h5>
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                      <%= form.label :check_in, "Check In", class: "form-label fw-bold" %>
+                      <%= form.datetime_field :check_in,
+                            value: @check_in,
+                            required: true,
+                            class: "form-control" %>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                      <%= form.label :check_out, "Check Out", class: "form-label fw-bold" %>
+                      <%= form.datetime_field :check_out,
+                            value: @check_out,
+                            required: true,
+                            class: "form-control" %>
+                    </div>
+                  </div>
+                </div>
+
+                <hr>
+
+                <!-- Room -->
+                <div class="mb-4">
+                  <h5 class="mb-3 text-muted">Room Selection</h5>
+
+                  <%= form.label :room_id, "Available Rooms", class: "form-label fw-bold" %>
+
+                  <div class="d-flex align-items-center gap-3 mb-2">
+                    <%= form.collection_select :room_id, [], :id, :room_number,
+                          { include_blank: "Select dates first" },
+                          { required: true, disabled: true, class: "form-select" } %>
+
+                    <div id="room-status"></div>
+                  </div>
+                  <small class="form-text text-muted">Select check-in and check-out dates to see available rooms</small>
+                </div>
+
+                <hr>
+
+                <!-- Customer -->
+                <div class="mb-4">
+                  <h5 class="mb-3 text-muted">Customer Information</h5>
+
+                  <%= form.label :customer_id, "Search Customer", class: "form-label fw-bold" %>
+                  <div class="position-relative">
+                    <input
+                      type="text"
+                      id="customer_search"
+                      placeholder="Type name or phone number..."
+                      autocomplete="off"
+                      class="form-control"
+                    >
+
+                    <div id="customer-results"
+                         class="list-group position-absolute w-100 shadow"
+                         style="z-index: 1000; max-height: 250px; overflow-y: auto;">
+                    </div>
+                  </div>
+
+                  <%# Hidden field — id="booking_customer_id" is what the JS targets %>
+                  <%= form.hidden_field :customer_id,
+                        id: "booking_customer_id" %>
+
+                  <div class="mt-3">
+                    <%= link_to new_customer_path,
+                          target: "_blank",
+                          class: "btn btn-sm text-white",
+                          style: "background-color: #007bff;" do %>
+                      <i class="bi bi-plus-circle"></i> Add New Customer
+                    <% end %>
+                  </div>
+                </div>
+
+                <hr>
+
+                <!-- Guests -->
+                <div class="mb-4">
+                  <h5 class="mb-3 text-muted">Guest Count</h5>
+
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                      <%= form.label :adults, "Adults", class: "form-label fw-bold" %>
+                      <%= form.number_field :adults,
+                            min: 1,
+                            value: booking.adults || 1,
+                            required: true,
+                            class: "form-control" %>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                      <%= form.label :children, "Children", class: "form-label fw-bold" %>
+                      <%= form.number_field :children,
+                            min: 0,
+                            value: booking.children || 0,
+                            required: true,
+                            class: "form-control" %>
+                    </div>
+                  </div>
+                </div>
+
+                <% if action_name == "edit" %>
+                  <hr>
+
+                  <!-- Status -->
+                  <div class="mb-4">
+                    <h5 class="mb-3 text-muted">Booking Status</h5>
+                    <%= form.select :status,
+                          Booking.statuses.keys.map { |s| [s.humanize, s] },
+                          {},
+                          required: true,
+                          class: "form-select" %>
+                  </div>
+                <% end %>
+
+                <hr>
+
+                <!-- Comment -->
+                <div class="mb-4">
+                  <h5 class="mb-3 text-muted">Internal Notes</h5>
+                  <%= form.text_area :comment,
+                        rows: 3,
+                        class: "form-control",
+                        placeholder: "Optional notes about this booking..." %>
+                </div>
+
+                <div class="d-grid">
+                  <%# No custom id needed — JS finds submit button by type selector %>
+                  <%= form.submit booking.new_record? ? "Create Booking" : "Update Booking",
+                        class: "btn btn-lg text-white",
+                        style: "background-color: #007bff;" %>
+                </div>
+
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= RIGHT PANEL ================= -->
+        <div class="col-lg-5">
+
+          <!-- Room Information card -->
+          <div class="card shadow-sm mb-4">
+            <div class="card-header text-white" style="background-color: #2c3e50;">
+              <h5 class="mb-0">Room Information</h5>
+            </div>
+            <div class="card-body">
+              <h5 id="selected-room-name" class="text-muted">None selected</h5>
             </div>
           </div>
 
-          <hr>
+          <!-- Customer Preview card -->
+          <div class="card shadow-sm mb-4">
+            <div class="card-header text-white" style="background-color: #2c3e50;">
+              <h5 class="mb-0">Customer Preview</h5>
+            </div>
+            <div class="card-body">
+              <%# JS inserts a #customer-preview-card div here when a customer is selected %>
+              <div id="customer-preview" class="border rounded p-3 bg-light">
+              <p class="text-muted small mb-0" id="customer-preview-placeholder">Search and select a customer above</p>
+            </div>
+          </div>
 
-          <!-- Customer Preview -->
-          <div>
-            <h6 class="text-muted">Selected Customer</h6>
-            <div id="customer-preview" class="mt-2">
-              <p class="text-muted">Select a customer to view details</p>
+          <!-- Room History card -->
+          <div class="card shadow-sm">
+            <div class="card-header text-white" style="background-color: #2c3e50;">
+              <h5 class="mb-0">Room History</h5>
+            </div>
+            <div class="card-body p-2">
+              <%# JS populates this when a room + dates are selected %>
+              <div id="customer-history">
+                <p class="text-muted small mb-0 p-2">Select a room to see booking history</p>
+              </div>
             </div>
           </div>
 
         </div>
+
       </div>
     </div>
-
   </div>
 </div>
-</body>

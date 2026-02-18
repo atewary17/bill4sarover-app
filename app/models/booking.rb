@@ -10,7 +10,8 @@ class Booking < ApplicationRecord
     booked: 0,
     checked_in: 1,
     checked_out: 2,
-    cancelled: 3
+    cancelled: 3,
+    invoiced: 4
   }
 
   validates :check_in, :check_out, presence: true

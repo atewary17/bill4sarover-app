@@ -1,26 +1,30 @@
 class BookingsController < ApplicationController
-  before_action :set_booking, only: %i[ show edit update destroy ]
+  before_action :set_booking, only: %i[ show edit update destroy check_in check_out cancel ]
 
   def index
-    @from = params[:from]
-    @to   = params[:to]
+    # Default date range: last 30 days to today
+    @from = params[:from].presence || 15.days.ago.to_date
+    @to   = params[:to].presence || Date.today + 15.days
 
     @bookings = Booking.includes(:customer, :room).order(check_in: :desc)
 
-    if @from.present? && @to.present?
-      @bookings = @bookings.where(
-        "check_in >= ? AND check_out <= ?",
-        @from.to_date.beginning_of_day,
-        @to.to_date.end_of_day
-      )
-    end
+    # Apply date filter
+    @bookings = @bookings.where(
+      "check_in >= ? AND check_out <= ?",
+      @from.to_date.beginning_of_day,
+      @to.to_date.end_of_day
+    )
   end
 
   def show
   end
 
   def new
-    @booking = Booking.new(status: "booked")
+    @check_in  = (params[:to].presence || Time.current).change(sec: 0)
+
+    @booking = Booking.new(
+      status: "booked",
+    )
   end
 
   def edit

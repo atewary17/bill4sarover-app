@@ -15,32 +15,76 @@
             <h5 class="mb-0">Billed To</h5>
           </div>
           <div class="card-body">
-            <div class="row mb-3">
-              <div class="col-md-6" id="customer-select-wrapper">
-                <label class="form-label fw-bold">Select Customer</label>
-                <%= f.select :billed_to_id,
-                    @customers.map { |c| [c.name, c.id] },
-                    { include_blank: "Select Customer" },
-                    class: "form-select",
-                    id: "billed-to-customer" %>
+
+            <!-- If bookings present: show dropdown -->
+            <% if @bookings.any? %>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-bold">Select Customer</label>
+                  <%= f.select :billed_to_id,
+                      @customers.map { |c| [c.name, c.id] },
+                      { include_blank: "— Select Customer —" },
+                      class: "form-select",
+                      id: "billed-to-customer" %>
+                  <div class="form-text">Select from booking customers</div>
+                </div>
               </div>
-            </div>
+
+            <!-- If no bookings: show autocomplete search -->
+            <% else %>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="payer-search-input" class="form-label fw-bold">Search Customer</label>
+                  <input type="text"
+                         id="payer-search-input"
+                         class="form-control"
+                         placeholder="Type name or phone number...">
+                  <div class="form-text">Type at least 2 characters to search</div>
+
+                  <%= f.hidden_field :billed_to_id, id: "payer-id-hidden" %>
+
+                  <ul id="payer-results" 
+                      class="list-group mt-2"
+                      style="max-height: 250px; overflow-y: auto;"></ul>
+                </div>
+              </div>
+            <% end %>
+
             <div class="row mb-3">
               <div class="col-md-6">
-                <label class="form-label fw-bold">Phone</label>
+                <label class="form-label fw-bold">
+                  Phone
+                  <small class="text-muted fw-normal">(auto-filled, editable)</small>
+                </label>
                 <%= f.text_field :billed_to_phone,
                     class: "form-control",
                     placeholder: "Phone",
                     id: "billed-phone" %>
               </div>
               <div class="col-md-6">
-                <label class="form-label fw-bold">Email</label>
+                <label class="form-label fw-bold">
+                  Email
+                  <small class="text-muted fw-normal">(auto-filled, editable)</small>
+                </label>
                 <%= f.email_field :billed_to_email,
                     class: "form-control",
                     placeholder: "Email",
                     id: "billed-email" %>
               </div>
             </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">
+                  Company GST Number
+                  <small class="text-muted fw-normal">(optional)</small>
+                </label>
+                <%= f.text_field :company_gst_number,
+                    class: "form-control",
+                    placeholder: "GST Number" %>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -278,7 +322,7 @@
 <script>
   document.addEventListener("DOMContentLoaded", function () {
 
-    // ── Customer autofill ────────────────────────────────────────────
+    // ── Customer autofill (for dropdown) ─────────────────────────────
     const customerSelect = document.getElementById("billed-to-customer");
     const phoneField     = document.getElementById("billed-phone");
     const emailField     = document.getElementById("billed-email");
@@ -286,7 +330,11 @@
     if (customerSelect) {
       customerSelect.addEventListener("change", function () {
         const id = this.value;
-        if (!id) return;
+        if (!id) {
+          if (phoneField) phoneField.value = "";
+          if (emailField) emailField.value = "";
+          return;
+        }
         fetch(`/customers/${id}.json`)
           .then(r => r.json())
           .then(d => {
@@ -294,6 +342,90 @@
             if (emailField) emailField.value = d.email || "";
           });
       });
+    }
+
+    // ── Customer autocomplete search (for no bookings) ───────────────
+    const searchInput      = document.getElementById("payer-search-input");
+    const resultsContainer = document.getElementById("payer-results");
+    const hiddenField      = document.getElementById("payer-id-hidden");
+
+    if (searchInput && resultsContainer && hiddenField) {
+      let searchTimeout;
+
+      searchInput.addEventListener("input", function () {
+        const query = this.value;
+        console.log("Search input:", query);
+
+        clearTimeout(searchTimeout);
+
+        if (query.length < 2) {
+          resultsContainer.innerHTML = "";
+          return;
+        }
+
+        searchTimeout = setTimeout(() => {
+          console.log("Searching for:", query);
+
+          fetch(`/customers/search?q=${encodeURIComponent(query)}`)
+            .then(response => {
+              console.log("Response status:", response.status);
+              return response.json();
+            })
+            .then(data => {
+              console.log("Search results:", data);
+              displayResults(data);
+            })
+            .catch(error => {
+              console.error("Search error:", error);
+              resultsContainer.innerHTML = '<li class="list-group-item list-group-item-danger">Error searching customers</li>';
+            });
+        }, 300);
+      });
+
+      function displayResults(customers) {
+        if (customers.length === 0) {
+          resultsContainer.innerHTML = '<li class="list-group-item text-muted">No customers found</li>';
+          return;
+        }
+
+        resultsContainer.innerHTML = customers.map(customer => {
+          const escapedName  = escapeHtml(customer.name || '');
+          const escapedPhone = escapeHtml(customer.phone || '');
+
+          return `
+            <li class="list-group-item list-group-item-action"
+                style="cursor: pointer;"
+                onclick="selectCustomer(${customer.id}, '${escapedName}', '${escapedPhone}', '${escapeHtml(customer.email || '')}')">
+              <strong>${escapedName}</strong><br>
+              <small class="text-muted">${escapedPhone}</small>
+            </li>
+          `;
+        }).join('');
+      }
+
+      function escapeHtml(text) {
+        const map = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+      }
+
+      window.selectCustomer = function(id, name, phone, email) {
+        console.log("Selected:", { id, name, phone, email });
+        hiddenField.value = id;
+        searchInput.value = `${name} (${phone})`;
+        if (phoneField) phoneField.value = phone;
+        if (emailField) emailField.value = email;
+        resultsContainer.innerHTML = `
+          <li class="list-group-item list-group-item-success">
+            ✓ Selected: <strong>${name}</strong>
+          </li>
+        `;
+      };
     }
 
     // ── Shared counter for all dynamic line items ────────────────────
