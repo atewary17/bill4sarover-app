@@ -20,7 +20,9 @@ gem 'rack-cors'
 gem 'paper_trail'
 gem 'ostruct'
 gem "groupdate"
-
+gem 'matrix'  
+gem 'prawn'
+gem 'prawn-table'
 
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ]

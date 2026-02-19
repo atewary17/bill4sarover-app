@@ -6,7 +6,19 @@ Rails.application.routes.draw do
   get 'invoices/edit'
   get 'invoices/update'
   get 'invoices/destroy'
+
   
+  resources :invoices do
+    member do
+      post :issue
+      post :record_payment
+      post :mark_paid
+      post :mark_void
+      get :download_pdf
+      get :download_receipt
+    end
+  end
+
   resources :customers do
     collection do
       get :search

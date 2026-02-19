@@ -9,6 +9,13 @@
         </div>
       <% end %>
 
+      <% if alert %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <%= alert %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+
       <%
         booking_items = @invoice.invoice_items.select { |i| i.metadata&.dig("type") == "booking" }
         service_items = @invoice.invoice_items.select { |i| i.metadata&.dig("type") == "service_charge" }
@@ -28,12 +35,111 @@
         </div>
         <div class="d-flex gap-2">
           <%= link_to "Back to Invoices", invoices_path, class: "btn btn-secondary" %>
-          <%= link_to "Print", "#",
+          <%= link_to "Download PDF", download_pdf_invoice_path(@invoice, format: :pdf),
               class: "btn text-white",
               style: "background-color: #2c3e50;",
-              onclick: "window.print()" %>
+              target: "_blank" %>
         </div>
       </div>
+
+      <!-- ── Payment Status & Actions ─────────────────────────────────── -->
+      <div class="card shadow-sm mb-4" style="border-left: 4px solid 
+        <%= case @invoice.status
+          when 'draft'   then '#6c757d'
+          when 'issued'  then '#007bff'
+          when 'partial' then '#ffc107'
+          when 'paid'    then '#28a745'
+          when 'void'    then '#dc3545'
+        end %>;">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <h5 class="mb-2">Payment Status</h5>
+              <div class="d-flex align-items-center gap-3">
+                <div>
+                  <small class="text-muted d-block">Total Amount</small>
+                  <strong class="fs-5">₹<%= number_with_precision(@invoice.total_amount, precision: 2, delimiter: ',') %></strong>
+                </div>
+                <div>
+                  <small class="text-muted d-block">Paid</small>
+                  <strong class="fs-5 text-success">₹<%= number_with_precision(@total_paid, precision: 2, delimiter: ',') %></strong>
+                </div>
+                <div>
+                  <small class="text-muted d-block">Balance</small>
+                  <strong class="fs-5 <%= @balance_due > 0 ? 'text-danger' : 'text-success' %>">
+                    ₹<%= number_with_precision(@balance_due, precision: 2, delimiter: ',') %>
+                  </strong>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4 text-end">
+              <% if @invoice.draft? %>
+                <%= button_to "Issue Invoice", issue_invoice_path(@invoice),
+                    method: :post,
+                    class: "btn btn-primary mb-2",
+                    data: { confirm: "Issue this invoice?" } %>
+              <% elsif @invoice.issued? || @invoice.partial? %>
+                <button type="button" class="btn btn-success mb-2" data-bs-toggle="modal" data-bs-target="#recordPaymentModal">
+                  Record Payment
+                </button>
+                <button type="button" class="btn btn-warning mb-2" data-bs-toggle="modal" data-bs-target="#markPaidModal">
+                  Mark as Paid
+                </button>
+              <% end %>
+              
+              <% unless @invoice.void? %>
+                <button type="button" class="btn btn-danger mb-2" data-bs-toggle="modal" data-bs-target="#voidModal">
+                  Void Invoice
+                </button>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Payment History ──────────────────────────────────────────── -->
+      <% if @payments.any? %>
+        <div class="card shadow-sm mb-4">
+          <div class="card-header text-white" style="background-color: #2c3e50;">
+            <h5 class="mb-0">Payment History</h5>
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-sm table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Date</th>
+                  <th>Receipt #</th>
+                  <th>Amount</th>
+                  <th>Method</th>
+                  <th>Reference</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @payments.each do |payment| %>
+                  <tr>
+                    <td><%= payment.paid_at.strftime("%d %b %Y, %H:%M") %></td>
+                    <td><strong><%= payment.receipt_number %></strong></td>
+                    <td>
+                      <strong class="text-success">
+                        ₹<%= number_with_precision(payment.amount, precision: 2, delimiter: ',') %>
+                      </strong>
+                    </td>
+                    <td><span class="badge bg-secondary"><%= payment.payment_method.humanize %></span></td>
+                    <td><%= payment.reference_number || "—" %></td>
+                    <td>
+                      <%= link_to "Receipt", download_receipt_invoice_path(@invoice, format: :pdf),
+                          class: "badge text-white text-decoration-none",
+                          style: "background-color: #007bff; padding: 0.35rem 0.65rem; font-size: 0.75rem;",
+                          target: "_blank" %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% end %>
 
       <!-- ── Invoice Meta Card ─────────────────────────────────────── -->
       <div class="card shadow-sm mb-4">
@@ -58,7 +164,7 @@
             <!-- Billed To -->
             <div class="col-md-6 mb-3">
               <p class="text-muted small fw-bold mb-2 text-uppercase">Billed To</p>
-              <h6 class="mb-1"><%= Customer.find(@invoice.billed_to_id.presence).name || "—" %></h6>
+              <h6 class="mb-1"><%= @invoice.billed_to_name.presence || "—" %></h6>
               <% if @invoice.billed_to_phone.present? %>
                 <small class="text-muted d-block">📞 <%= @invoice.billed_to_phone %></small>
               <% end %>
@@ -87,7 +193,7 @@
                     <td class="text-muted ps-0">Due Date</td>
                     <td>
                       <% if @invoice.due_date.present? %>
-                        <% overdue = @invoice.due_date < Date.today && @invoice.status != "paid" %>
+                        <% overdue = @invoice.due_date < Date.today && !['paid', 'void'].include?(@invoice.status) %>
                         <span class="<%= overdue ? 'text-danger fw-bold' : '' %>">
                           <%= @invoice.due_date.strftime("%d %b %Y") %>
                           <%= " (Overdue)" if overdue %>
@@ -127,7 +233,6 @@
             <h5 class="mb-0">Booking Items</h5>
           </div>
 
-          <!-- Column Headers -->
           <div class="px-3 py-2 border-bottom d-none d-md-block" style="background-color: #f1f3f5;">
             <div class="row fw-bold text-muted small">
               <div class="col-md-5">Description</div>
@@ -140,13 +245,8 @@
 
           <div class="card-body p-0">
             <% booking_items.each_with_index do |item, index| %>
-
-              <div class="border-bottom"
-                   style="background-color: <%= index.even? ? '#ffffff' : '#f8f9fa' %>;">
-
-                <!-- Booking Row -->
+              <div class="border-bottom" style="background-color: <%= index.even? ? '#ffffff' : '#f8f9fa' %>;">
                 <div class="row align-items-center px-3 py-3">
-
                   <div class="col-md-5">
                     <strong><%= item.description %></strong>
                     <% if item.metadata.present? %>
@@ -164,17 +264,14 @@
                       <% end %>
                     <% end %>
                   </div>
-
                   <div class="col-md-1 text-center">
                     <%= item.quantity.to_i %>
                     <br>
                     <small class="text-muted" style="font-size: 0.65rem;">nights</small>
                   </div>
-
                   <div class="col-md-2 text-center">
                     ₹<%= number_with_precision(item.unit_price, precision: 2, delimiter: ',') %>
                   </div>
-
                   <div class="col-md-2 text-center">
                     <% if item.tax_amount.to_d > 0 %>
                       <small class="text-muted">
@@ -186,43 +283,27 @@
                       <span class="text-muted">—</span>
                     <% end %>
                   </div>
-
                   <div class="col-md-2 text-end">
-                    <strong>
-                      ₹<%= number_with_precision(item.line_total, precision: 2, delimiter: ',') %>
-                    </strong>
+                    <strong>₹<%= number_with_precision(item.line_total, precision: 2, delimiter: ',') %></strong>
                   </div>
-
                 </div>
 
-                <!-- Service Charges linked to this booking -->
                 <%
                   linked_services = service_items.select do |s|
                     s.metadata&.dig("booking_id").to_s == item.source_id.to_s
                   end
                 %>
-
                 <% if linked_services.any? %>
                   <% linked_services.each do |svc| %>
                     <div class="row align-items-center px-3 py-2 mx-3 mb-2 rounded"
                          style="background-color: #eef2f7; border-left: 3px solid #007bff; font-size: 0.9rem;">
-
                       <div class="col-md-5 ps-2">
                         <span class="text-muted me-1">↳</span>
                         <%= svc.description %>
-                        <span class="badge bg-info text-dark ms-1" style="font-size: 0.65rem;">
-                          Service
-                        </span>
+                        <span class="badge bg-info text-dark ms-1" style="font-size: 0.65rem;">Service</span>
                       </div>
-
-                      <div class="col-md-1 text-center">
-                        <%= svc.quantity.to_i %>
-                      </div>
-
-                      <div class="col-md-2 text-center">
-                        ₹<%= number_with_precision(svc.unit_price, precision: 2, delimiter: ',') %>
-                      </div>
-
+                      <div class="col-md-1 text-center"><%= svc.quantity.to_i %></div>
+                      <div class="col-md-2 text-center">₹<%= number_with_precision(svc.unit_price, precision: 2, delimiter: ',') %></div>
                       <div class="col-md-2 text-center">
                         <% if svc.tax_amount.to_d > 0 %>
                           <small class="text-muted">
@@ -234,17 +315,12 @@
                           <span class="text-muted">—</span>
                         <% end %>
                       </div>
-
                       <div class="col-md-2 text-end">
-                        <strong>
-                          ₹<%= number_with_precision(svc.line_total, precision: 2, delimiter: ',') %>
-                        </strong>
+                        <strong>₹<%= number_with_precision(svc.line_total, precision: 2, delimiter: ',') %></strong>
                       </div>
-
                     </div>
                   <% end %>
                 <% end %>
-
               </div>
             <% end %>
           </div>
@@ -257,8 +333,6 @@
           <div class="card-header text-white" style="background-color: #2c3e50;">
             <h5 class="mb-0">Additional Items</h5>
           </div>
-
-          <!-- Column Headers -->
           <div class="px-3 py-2 border-bottom d-none d-md-block" style="background-color: #f1f3f5;">
             <div class="row fw-bold text-muted small">
               <div class="col-md-5">Description</div>
@@ -268,28 +342,16 @@
               <div class="col-md-2 text-end">Amount</div>
             </div>
           </div>
-
           <div class="card-body p-0">
             <% adhoc_items.each_with_index do |item, index| %>
               <div class="row align-items-center px-3 py-3 border-bottom"
-                   style="background-color: <%= index.even? ? '#fff8e1' : '#fffde7' %>;
-                          border-left: 3px solid #ffc107;">
-
+                   style="background-color: <%= index.even? ? '#fff8e1' : '#fffde7' %>; border-left: 3px solid #ffc107;">
                 <div class="col-md-5">
                   <%= item.description %>
-                  <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">
-                    Adhoc
-                  </span>
+                  <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">Adhoc</span>
                 </div>
-
-                <div class="col-md-2 text-center">
-                  <%= item.quantity.to_i %>
-                </div>
-
-                <div class="col-md-2 text-center">
-                  ₹<%= number_with_precision(item.unit_price, precision: 2, delimiter: ',') %>
-                </div>
-
+                <div class="col-md-2 text-center"><%= item.quantity.to_i %></div>
+                <div class="col-md-2 text-center">₹<%= number_with_precision(item.unit_price, precision: 2, delimiter: ',') %></div>
                 <div class="col-md-1 text-center">
                   <% if item.tax_amount.to_d > 0 %>
                     <small class="text-muted">
@@ -301,13 +363,9 @@
                     <span class="text-muted">—</span>
                   <% end %>
                 </div>
-
                 <div class="col-md-2 text-end">
-                  <strong>
-                    ₹<%= number_with_precision(item.line_total, precision: 2, delimiter: ',') %>
-                  </strong>
+                  <strong>₹<%= number_with_precision(item.line_total, precision: 2, delimiter: ',') %></strong>
                 </div>
-
               </div>
             <% end %>
           </div>
@@ -319,14 +377,10 @@
         <div class="card-body">
           <div class="row">
             <div class="col-md-5 offset-md-7">
-
               <div class="d-flex justify-content-between mb-2">
                 <span class="text-muted">Subtotal</span>
-                <strong>
-                  ₹<%= number_with_precision(@invoice.subtotal, precision: 2, delimiter: ',') %>
-                </strong>
+                <strong>₹<%= number_with_precision(@invoice.subtotal, precision: 2, delimiter: ',') %></strong>
               </div>
-
               <% if @invoice.discount_amount.to_d > 0 %>
                 <div class="d-flex justify-content-between mb-2">
                   <span class="text-muted">
@@ -342,14 +396,10 @@
                   </strong>
                 </div>
               <% end %>
-
               <div class="d-flex justify-content-between mb-2">
                 <span class="text-muted">Taxable Amount</span>
-                <strong>
-                  ₹<%= number_with_precision(@invoice.taxable_amount, precision: 2, delimiter: ',') %>
-                </strong>
+                <strong>₹<%= number_with_precision(@invoice.taxable_amount, precision: 2, delimiter: ',') %></strong>
               </div>
-
               <% if @invoice.tax_amount.to_d > 0 %>
                 <div class="d-flex justify-content-between mb-2">
                   <span class="text-muted">
@@ -360,16 +410,13 @@
                   </strong>
                 </div>
               <% end %>
-
               <hr class="my-2">
-
               <div class="d-flex justify-content-between">
                 <span class="fw-bold fs-5">Total</span>
                 <strong class="fs-5 text-success">
                   ₹<%= number_with_precision(@invoice.total_amount, precision: 2, delimiter: ',') %>
                 </strong>
               </div>
-
             </div>
           </div>
         </div>
@@ -396,10 +443,7 @@
               <tbody>
                 <% @invoice.bookings.each do |b| %>
                   <tr>
-                    <td>
-                      <%= link_to "##{b.id}", booking_path(b),
-                          class: "text-decoration-none fw-bold" %>
-                    </td>
+                    <td><%= link_to "##{b.id}", booking_path(b), class: "text-decoration-none fw-bold" %></td>
                     <td><%= b.customer&.name %></td>
                     <td><%= b.room&.room_number %></td>
                     <td><%= b.check_in.strftime("%d %b %Y") %></td>
@@ -411,6 +455,7 @@
                           when 'checked_in'  then 'bg-success'
                           when 'checked_out' then 'bg-secondary'
                           when 'cancelled'   then 'bg-danger'
+                          when 'invoiced'    then 'bg-info'
                         end %>">
                         <%= b.status.humanize %>
                       </span>
@@ -432,7 +477,7 @@
           <div class="card-body">
             <% if @invoice.notes.present? %>
               <p class="text-muted small fw-bold text-uppercase mb-1">Notes</p>
-              <p class="mb-3"><%= @invoice.notes %></p>
+              <div class="mb-3" style="white-space: pre-wrap;"><%= @invoice.notes %></div>
             <% end %>
             <% if @invoice.terms_and_conditions.present? %>
               <p class="text-muted small fw-bold text-uppercase mb-1">Terms & Conditions</p>
@@ -442,15 +487,169 @@
         </div>
       <% end %>
 
-      <!-- ── Action Buttons ────────────────────────────────────────── -->
-      <div class="d-flex gap-2 justify-content-end mb-5">
-        <%= link_to "Back to Invoices", invoices_path, class: "btn btn-secondary" %>
-        <%= link_to "Print", "#",
-            class: "btn text-white",
-            style: "background-color: #2c3e50;",
-            onclick: "window.print()" %>
-      </div>
-
     </div>
   </div>
 </div>
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- Record Payment Modal -->
+<div class="modal fade" id="recordPaymentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <%= form_with url: record_payment_invoice_path(@invoice), method: :post do |f| %>
+        <div class="modal-header" style="background-color: #2c3e50;">
+          <h5 class="modal-title text-white">Record Payment</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info">
+            <strong>Balance Due:</strong> ₹<%= number_with_precision(@balance_due, precision: 2, delimiter: ',') %>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label fw-bold">Amount *</label>
+            <%= number_field_tag :amount, nil, 
+                class: "form-control", 
+                step: 0.01, 
+                min: 0.01,
+                max: @balance_due,
+                required: true,
+                placeholder: "Enter payment amount" %>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Payment Method *</label>
+            <%= select_tag :payment_method,
+                options_for_select([
+                  ['Cash', 'cash'],
+                  ['Card', 'card'],
+                  ['UPI', 'upi'],
+                  ['Bank Transfer', 'bank_transfer'],
+                  ['Cheque', 'cheque']
+                ], 'cash'),
+                class: "form-select",
+                required: true %>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Reference Number</label>
+            <%= text_field_tag :reference_number, nil,
+                class: "form-control",
+                placeholder: "Transaction ID, Cheque #, etc." %>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Payment Note</label>
+            <%= text_area_tag :payment_note, nil,
+                class: "form-control",
+                rows: 2,
+                placeholder: "Optional note about this payment" %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= submit_tag "Record Payment", class: "btn btn-success" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Mark as Paid Modal -->
+<div class="modal fade" id="markPaidModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <%= form_with url: mark_paid_invoice_path(@invoice), method: :post do |f| %>
+        <div class="modal-header" style="background-color: #28a745;">
+          <h5 class="modal-title text-white">Mark as Paid</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            <strong>⚠️ This will mark the entire invoice as paid.</strong>
+            <br>Balance due: ₹<%= number_with_precision(@balance_due, precision: 2, delimiter: ',') %>
+          </div>
+
+          <%= hidden_field_tag :amount, @balance_due %>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Payment Method *</label>
+            <%= select_tag :payment_method,
+                options_for_select([
+                  ['Cash', 'cash'],
+                  ['Card', 'card'],
+                  ['UPI', 'upi'],
+                  ['Bank Transfer', 'bank_transfer'],
+                  ['Cheque', 'cheque']
+                ], 'cash'),
+                class: "form-select",
+                required: true %>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Reference Number</label>
+            <%= text_field_tag :reference_number, nil,
+                class: "form-control",
+                placeholder: "Transaction ID, Cheque #, etc." %>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Note</label>
+            <%= text_area_tag :note, nil,
+                class: "form-control",
+                rows: 2,
+                placeholder: "Optional note" %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= submit_tag "Mark as Paid", class: "btn btn-success" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Void Invoice Modal -->
+<div class="modal fade" id="voidModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <%= form_with url: mark_void_invoice_path(@invoice), method: :post do |f| %>
+        <div class="modal-header bg-danger">
+          <h5 class="modal-title text-white">Void Invoice</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-danger">
+            <strong>⚠️ Warning:</strong> This action cannot be undone. The invoice will be marked as void.
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Reason for Voiding *</label>
+            <%= text_area_tag :void_reason, nil,
+                class: "form-control",
+                rows: 3,
+                required: true,
+                placeholder: "Please provide a reason for voiding this invoice" %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= submit_tag "Void Invoice", class: "btn btn-danger" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check if payment was just recorded
+    <% if flash[:payment_id].present? %>
+      // Open receipt in new tab
+      const receiptUrl = '<%= download_receipt_invoice_path(@invoice, payment_id: flash[:payment_id], format: :pdf) %>';
+      window.open(receiptUrl, '_blank');
+    <% end %>
+  });
+</script>

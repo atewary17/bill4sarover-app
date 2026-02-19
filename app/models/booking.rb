@@ -4,7 +4,7 @@ class Booking < ApplicationRecord
   has_many :invoice_bookings, dependent: :destroy
   has_many :invoices, through: :invoice_bookings
 
-  validate :room_availability
+  validate :room_availability, on: :create
 
   enum status: {
     booked: 0,
@@ -26,6 +26,9 @@ class Booking < ApplicationRecord
       .where.not(id: id)
       .where.not(status: [:cancelled, :checked_out, :booked])
       .where("check_in < ? AND check_out > ?", check_out, check_in)
+
+      puts "...........22"
+      puts 
 
     if overlapping.exists?
       errors.add(:room_id, "is not available for selected dates")

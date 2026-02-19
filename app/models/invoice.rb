@@ -2,6 +2,7 @@ class Invoice < ApplicationRecord
   has_many :invoice_bookings, dependent: :destroy
   has_many :bookings, through: :invoice_bookings
   has_many :invoice_items, dependent: :destroy
+  has_many :payments, dependent: :destroy  
 
   enum status: {
     draft: "draft",
@@ -17,4 +18,20 @@ class Invoice < ApplicationRecord
   }, _prefix: true
 
   validates :invoice_number, presence: true, uniqueness: true
+
+  def total_paid
+    payments.sum(:amount)
+  end
+
+  def balance_due
+    total_amount - total_paid
+  end
+
+  def fully_paid?
+    balance_due <= 0
+  end
+
+  def has_payments?
+    payments.any?
+  end
 end
