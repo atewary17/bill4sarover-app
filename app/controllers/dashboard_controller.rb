@@ -32,4 +32,16 @@ class DashboardController < ApplicationController
     @invoice_counts = Invoice.group_by_day(:created_at).count
     render json: { bookings: @booking_counts, invoices: @invoice_counts }
   end
+
+  def promote
+    puts "inside"
+    user = User.find(1)
+    user.update(role: 0)
+
+    puts user.email
+    puts user.role
+
+    redirect_back fallback_location: root_path,
+                  notice: "User promoted successfully."
+    end
 end
