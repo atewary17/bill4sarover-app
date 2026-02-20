@@ -1,13 +1,24 @@
 Rails.application.routes.draw do
-  get 'invoices/index'
-  get 'invoices/show'
-  get 'invoices/new'
-  get 'invoices/create'
-  get 'invoices/edit'
-  get 'invoices/update'
-  get 'invoices/destroy'
-
+  # Devise with password recovery enabled
+  devise_for :users, skip: [:registrations], controllers: {
+    passwords: 'users/passwords'
+  }
   
+  # Custom user management routes (super_admin only)
+  authenticate :user, ->(u) { u.super_admin? } do
+    resources :users, only: [:index, :new, :create, :edit, :update, :destroy] do
+      member do
+        patch :reset_password
+      end
+    end
+  end
+
+  resources :rooms do
+    member do
+      patch :update_price
+    end
+  end
+
   resources :invoices do
     member do
       post :issue
@@ -25,20 +36,6 @@ Rails.application.routes.draw do
     end
   end
 
-  
-  get 'bookings/index'
-  get 'bookings/show'
-  get 'bookings/new'
-  get 'bookings/edit'
-  get 'dashboard/index'
-  get 'dashboard/mobile_output'
-  devise_for :users
-  get "up" => "rails/health#show", as: :rails_health_check
-
-  # Defines the root path route ("/")
-  # root "posts#index"
-  root "dashboard#index"
-
   resources :bookings do
     collection do
       get :view_rooms
@@ -53,6 +50,5 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :invoices
-
+  root "dashboard#index"
 end

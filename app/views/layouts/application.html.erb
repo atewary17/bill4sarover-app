@@ -2,6 +2,7 @@
 <html>
   <head>
     <title><%= content_for?(:title) ? yield(:title) : "Sarover" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
@@ -28,7 +29,7 @@
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "login", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "booking", "data-turbo-track": "reload" %>
-    <%= javascript_include_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_include_tag "application", type: "module", "data-turbo-track": "reload", defer: true %>
     <%= javascript_importmap_tags %>
 
     <style>
@@ -94,8 +95,36 @@
         color: #fff;
       }
 
+      /* User info */
+      .user-info {
+        color: rgba(255,255,255,.7);
+        font-size: .85rem;
+        padding: .45rem .85rem;
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+      }
+
+      .user-info .user-name {
+        color: #fff;
+        font-weight: 600;
+      }
+
+      .user-info .user-role {
+        background: rgba(255,255,255,.15);
+        padding: .15rem .5rem;
+        border-radius: 12px;
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .3px;
+      }
+
       /* Logout button — strip form/button defaults */
-      .app-navbar nav form { margin: 0; }
+      .app-navbar nav form { 
+        margin: 0;
+        display: inline-block;
+      }
+      
       .app-navbar nav .logout-btn {
         background: transparent;
         border: 1px solid rgba(255,255,255,.35);
@@ -104,6 +133,7 @@
         align-items: center;
         gap: .35rem;
       }
+      
       .app-navbar nav .logout-btn:hover {
         background: rgba(231,76,60,.75);
         border-color: transparent;
@@ -174,12 +204,33 @@
             <i class="bi bi-receipt"></i> Invoices
           <% end %>
 
+          <% if current_user.can_manage_rooms? %>
+            <%= link_to rooms_path,
+                  class: "#{controller_name == 'rooms' ? 'active' : ''}" do %>
+              <i class="bi bi-door-open"></i> Rooms
+            <% end %>
+          <% end %>
+
+          <% if current_user.can_manage_users? %>
+            <%= link_to users_path,
+                  class: "#{controller_name == 'users' ? 'active' : ''}" do %>
+              <i class="bi bi-person-gear"></i> Users
+            <% end %>
+          <% end %>
+
           <span class="nav-divider"></span>
 
-          <%= button_to destroy_user_session_path,
-                method: :delete,
-                class: "logout-btn" do %>
-            <i class="bi bi-box-arrow-right"></i> Logout
+          <!-- User Info -->
+          <div class="user-info">
+            <i class="bi bi-person-circle"></i>
+            <span class="user-name"><%= current_user.name %></span>
+            <span class="user-role"><%= current_user.role.humanize %></span>
+          </div>
+
+          <%= form_with url: destroy_user_session_path, method: :delete, data: { turbo: false } do %>
+            <%= button_tag type: "submit", class: "logout-btn" do %>
+              <i class="bi bi-box-arrow-right"></i> Logout
+            <% end %>
           <% end %>
         </nav>
       <% end %>

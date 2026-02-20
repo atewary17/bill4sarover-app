@@ -1,0 +1,45 @@
+<%= form_with(model: user, local: true) do |form| %>
+  <% if user.errors.any? %>
+    <div class="alert alert-danger">
+      <h6 class="alert-heading">
+        <%= pluralize(user.errors.count, "error") %> prevented this user from being saved:
+      </h6>
+      <ul class="mb-0">
+        <% user.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-3">
+    <%= form.label :name, class: "form-label fw-bold" %>
+    <%= form.text_field :name, class: "form-control", required: true %>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :email, class: "form-label fw-bold" %>
+    <%= form.email_field :email, class: "form-control", required: true %>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :role, class: "form-label fw-bold" %>
+    <%= form.select :role,
+        User.roles.keys.map { |r| [r.humanize, r] },
+        {},
+        class: "form-select",
+        required: true %>
+  </div>
+
+  <% if user.new_record? %>
+    <div class="alert alert-info">
+      <small>A random password will be generated and displayed after creation.</small>
+    </div>
+  <% end %>
+
+  <div class="d-grid gap-2">
+    <%= form.submit user.new_record? ? "Create User" : "Update User",
+        class: "btn text-white",
+        style: "background-color: #007bff;" %>
+  </div>
+<% end %>
