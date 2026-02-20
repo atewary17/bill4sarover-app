@@ -23,9 +23,11 @@ gem "groupdate"
 gem 'matrix'  
 gem 'prawn'
 gem 'prawn-table'
+gem 'pundit'
 
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ]
+  gem 'letter_opener'
 end
 
 group :development do

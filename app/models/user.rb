@@ -1,9 +1,31 @@
 class User < ApplicationRecord
-  # Include default devise modules. Others available are:
   # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
-  devise :database_authenticatable, :registerable,
-         :recoverable, :rememberable, :validatable
+  # devise :database_authenticatable, :registerable,
+  #        :recoverable, :rememberable, :validatable
   
-  enum role: { admin: "admin", staff: "staff" }
+  # Include default devise modules
+  devise :database_authenticatable, :rememberable, :validatable, :recoverable
+  # Remove :registerable and :recoverable for normal users
 
+  enum role: {
+    super_admin: 0,
+    admin: 1,
+    staff: 2
+  }
+
+  validates :name, presence: true
+  validates :role, presence: true
+
+  # Helper methods
+  def can_manage_users?
+    super_admin?
+  end
+
+  def can_manage_rooms?
+    super_admin?
+  end
+
+  def can_manage_bookings?
+    super_admin? || admin? || staff?
+  end
 end
