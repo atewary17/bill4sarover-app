@@ -9,3 +9,9 @@
 #   { room_number: "404", room_type: "Classic_Residence", base_price_per_night: 2500, status: "available" },
 #   { room_number: "200", room_type: "Banquet", base_price_per_night: 40000, status: "available" }
 # ])
+
+User.find_or_create_by!(email: "ayush@tracemydoc.com") do |user|
+  user.name = "Ayush"
+  user.password = "securepassword"
+  user.role = :super_admin
+end
