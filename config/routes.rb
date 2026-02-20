@@ -18,8 +18,6 @@ Rails.application.routes.draw do
       patch :update_price
     end
   end
-
-  patch "dashboard/promote", to: "dashboard#promote", as: :promote_user
   
   resources :invoices do
     member do
