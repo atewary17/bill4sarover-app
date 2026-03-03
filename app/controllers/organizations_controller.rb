@@ -54,14 +54,27 @@ class OrganizationsController < ApplicationController
   private
 
   def set_organization
+    # Simply find by id - Rails will handle this automatically
     @organization = Organization.find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    redirect_to organizations_path, alert: "Organization not found"
   end
 
   def organization_params
-    params.require(:organization).permit(
+    permitted = params.require(:organization).permit(
       :name, :slug, :email, :phone, :address, :city, :state, 
       :country, :postal_code, :tax_id, :logo_url, :currency, 
-      :timezone, :active, settings: {}
+      :timezone, :active
     )
+    
+    # Properly handle settings JSONB column
+    if params[:organization][:settings].present?
+      settings = {}
+      settings['invoice_prefix'] = params[:organization][:settings][:invoice_prefix] if params[:organization][:settings][:invoice_prefix].present?
+      settings['default_tax_rate'] = params[:organization][:settings][:default_tax_rate].to_f if params[:organization][:settings][:default_tax_rate].present?
+      permitted[:settings] = settings
+    end
+    
+    permitted
   end
 end

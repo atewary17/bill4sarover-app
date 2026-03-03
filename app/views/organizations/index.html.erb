@@ -128,11 +128,11 @@
 
               <!-- Actions -->
               <div class="card-footer bg-white d-flex justify-content-between">
-                <%= link_to "View Details", organization_path(org), 
+                <%= link_to "View Details", org, 
                     class: "btn btn-sm btn-outline-primary" %>
                 <%= link_to "Edit", edit_organization_path(org), 
                     class: "btn btn-sm btn-outline-secondary" %>
-                <%= button_to "Delete", organization_path(org), 
+                <%= button_to "Delete", org, 
                     method: :delete,
                     class: "btn btn-sm btn-outline-danger",
                     data: { confirm: "Delete #{org.name}? This will remove all associated data!" } %>

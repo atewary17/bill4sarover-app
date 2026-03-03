@@ -1,6 +1,6 @@
 class RoomsController < ApplicationController
   before_action :set_room, only: [:show, :edit, :update, :update_price, :destroy]
-  before_action -> { authorize @room || Room }
+  before_action -> { authorize @room || Room }, except: [:copy_to_org]
 
   def index
     @rooms = current_organization.rooms.order(:room_number)
@@ -51,6 +51,36 @@ class RoomsController < ApplicationController
     @room.destroy
     redirect_to rooms_path, notice: "Room deleted successfully"
   end
+
+  # Add to RoomsController
+  def copy_to_org  # ← ADD before_action check here too
+      @room = current_organization.rooms.find(params[:id])
+      
+      # Super admin check (replaces policy)
+      authorize @room, :copy_to_org? if current_user.super_admin?
+      
+      @target_orgs = Organization.active.where.not(id: current_organization.id)
+      
+      if params[:target_org_id].present?
+        target_org = Organization.find(params[:target_org_id])
+        new_room = @room.dup
+        new_room.organization_id = target_org.id
+        new_room.room_number += "-copy"  # Fix uniqueness
+        
+        if new_room.save
+          redirect_to rooms_path, notice: "Room '#{@room.room_number}' copied to #{target_org.name}!"
+        else
+          redirect_to rooms_path, alert: "Failed: #{new_room.errors.full_messages.join(', ')}"
+        end
+      else
+        redirect_to rooms_path, alert: "Select target organization"
+      end
+    end
+
+  def copy_to_org_params
+    params.permit(:target_org_id)
+  end
+
 
   private
 

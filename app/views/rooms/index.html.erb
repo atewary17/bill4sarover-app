@@ -12,13 +12,14 @@
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Rooms</h1>
         <% if policy(Room).create? %>
-          <%= link_to "Add Room", new_room_path, class: "btn text-white", style: "background-color: #007bff;" %>
+          <%= link_to "Add Room", new_room_path, class: "btn btn-primary" %>
         <% end %>
       </div>
 
       <div class="card shadow-sm">
-        <div class="card-header text-white" style="background-color: #2c3e50;">
+        <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #2c3e50;">
           <h5 class="mb-0">All Rooms</h5>
+          <small class="opacity-75"><%= @rooms.count %> room<%= 's' unless @rooms.count == 1 %> found</small>
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
@@ -27,6 +28,7 @@
                 <tr>
                   <th>Room Number</th>
                   <th>Type</th>
+                  <th>Organization</th>
                   <th>Price/Night</th>
                   <th>Status</th>
                   <th>Actions</th>
@@ -36,7 +38,12 @@
                 <% @rooms.each do |room| %>
                   <tr>
                     <td><strong><%= room.room_number %></strong></td>
-                    <td><span class="badge bg-secondary"><%= room.room_type %></span></td>
+                    <td><span class="badge bg-secondary"><%= room.room_type.gsub('_', ' ').titleize %></span></td>
+                    <td>
+                      <span class="badge bg-light text-dark fw-semibold small" title="<%= room.organization.address %>">
+                        <%= room.organization.name %>
+                      </span>
+                    </td>
                     <td>
                       <% if policy(room).update_price? %>
                         <%= form_with url: update_price_room_path(room), method: :patch, class: "d-inline-flex align-items-center gap-2" do %>
@@ -49,27 +56,80 @@
                                 min: 0 %>
                           </div>
                           <%= button_tag type: "submit", class: "btn btn-sm btn-success" do %>
-                            <i class="bi bi-check"></i>
+                            <i class="bi bi-check-lg"></i>
                           <% end %>
                         <% end %>
                       <% else %>
-                        <strong>₹<%= number_with_precision(room.base_price_per_night, precision: 2, delimiter: ',') %></strong>
+                        <strong class="text-success">₹<%= number_with_precision(room.base_price_per_night, precision: 2, delimiter: ',') %></strong>
                       <% end %>
                     </td>
                     <td>
-                      <span class="badge <%= room.status == 'available' ? 'bg-success' : 'bg-warning' %>">
-                        <%= room.status %>
+                      <span class="badge <%= room.status == 'available' ? 'bg-success' : room.status == 'occupied' ? 'bg-warning' : 'bg-secondary' %>">
+                        <%= room.status.humanize %>
                       </span>
                     </td>
                     <td>
-                      <% if policy(room).update? %>
-                        <%= link_to "Edit", edit_room_path(room), class: "btn btn-sm btn-outline-primary" %>
-                      <% end %>
-                      <% if policy(room).destroy? %>
-                        <%= button_to "Delete", room_path(room),
-                            method: :delete,
-                            class: "btn btn-sm btn-outline-danger",
-                            data: { confirm: "Delete room #{room.room_number}?" } %>
+                      <div class="btn-group btn-group-sm" role="group">
+                        <% if policy(room).show? %>
+                          <%= link_to room_path(room), class: "btn btn-outline-info", title: "View details" do %>
+                            <i class="bi bi-eye"></i>
+                          <% end %>
+                        <% end %>
+
+                        <% if current_user.super_admin? %>
+                          <!-- Copy to Org Dropdown -->
+                          <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Copy to other org">
+                              <i class="bi bi-copy"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                              <% Organization.active.where.not(id: current_organization.id).each do |target_org| %>
+                                <%= form_with url: copy_to_org_room_path(room), method: :patch, class: "dropdown-item px-3 py-2" do |form| %>
+                                  <%= form.hidden_field :target_org_id, value: target_org.id %>
+                                  <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                      <strong><%= target_org.name %></strong>
+                                      <br><small class="text-muted"><%= target_org.address %></small>
+                                    </div>
+                                    <%= form.submit "Copy", class: "btn btn-sm btn-outline-primary ms-2", style: "min-width: 70px;" %>
+                                  </div>
+                                <% end %>
+                              <% end %>
+                              <% if Organization.active.where.not(id: current_organization.id).none? %>
+                                <li><span class="dropdown-item text-center text-muted py-3">No other organizations</span></li>
+                              <% end %>
+                            </ul>
+                          </div>
+                        <% end %>
+
+                        <% if policy(room).update? %>
+                          <%= link_to edit_room_path(room), class: "btn btn-outline-primary", title: "Edit" do %>
+                            <i class="bi bi-pencil"></i>
+                          <% end %>
+                        <% end %>
+
+                        <% if policy(room).destroy? %>
+                          <%= button_to room_path(room),
+                              method: :delete,
+                              class: "btn btn-outline-danger",
+                              data: { confirm: "Delete room #{room.room_number}? This cannot be undone." },
+                              title: "Delete" do %>
+                            <i class="bi bi-trash"></i>
+                          <% end %>
+                        <% end %>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+
+                <% if @rooms.none? %>
+                  <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                      <i class="bi bi-door-closed fs-1 d-block mb-3 opacity-50"></i>
+                      <h5 class="mb-3">No rooms found</h5>
+                      <p class="mb-4">Get started by creating your first room for <%= current_organization.name %>.</p>
+                      <% if policy(Room).create? %>
+                        <%= link_to "Add First Room", new_room_path, class: "btn btn-primary px-4" %>
                       <% end %>
                     </td>
                   </tr>

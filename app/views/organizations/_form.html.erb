@@ -138,7 +138,7 @@
         <div class="col-md-6 mb-3">
           <label class="form-label fw-bold">Invoice Prefix</label>
           <%= text_field_tag 'organization[settings][invoice_prefix]',
-              organization.settings['invoice_prefix'],
+              organization.settings&.dig('invoice_prefix'),
               class: "form-control",
               placeholder: "INV" %>
           <small class="form-text text-muted">
@@ -149,7 +149,7 @@
         <div class="col-md-6 mb-3">
           <label class="form-label fw-bold">Default Tax Rate (%)</label>
           <%= number_field_tag 'organization[settings][default_tax_rate]',
-              organization.settings['default_tax_rate'],
+              organization.settings&.dig('default_tax_rate'),
               class: "form-control",
               step: 0.01,
               placeholder: "18.0" %>

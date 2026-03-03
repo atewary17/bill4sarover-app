@@ -13,8 +13,19 @@ class Organization < ApplicationRecord
   
   scope :active, -> { where(active: true) }
   
-  def to_param
-    slug
+  # Use ID in URLs (standard Rails behavior)
+  # Don't override to_param
+  
+  # Generate next invoice number with thread-safe counter
+  def next_invoice_number
+    prefix = settings&.dig('invoice_prefix') || 'INV'
+    date_part = Time.current.strftime('%Y%m%d')
+    
+    # Increment counter atomically (thread-safe)
+    counter = increment!(:invoice_counter).invoice_counter
+    
+    # Format: PREFIX-YYYYMMDD-00001
+    "#{prefix}-#{date_part}-#{counter.to_s.rjust(5, '0')}"
   end
   
   private
