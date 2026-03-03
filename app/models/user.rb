@@ -24,7 +24,7 @@ class User < ApplicationRecord
   end
 
   def can_manage_rooms?
-    super_admin?
+    super_admin? || admin?
   end
 
   def can_manage_bookings?
