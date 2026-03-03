@@ -41,7 +41,11 @@ class ApplicationPolicy
     end
 
     def resolve
-      raise NotImplementedError, "You must define #resolve in #{self.class}"
+      if scope.respond_to?(:for_organization)
+        scope.for_organization(user.organization_id)
+      else
+        scope.all
+      end
     end
 
     private

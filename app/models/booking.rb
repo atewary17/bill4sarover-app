@@ -1,4 +1,5 @@
 class Booking < ApplicationRecord
+  belongs_to :organization
   belongs_to :customer
   belongs_to :room, optional: true
   has_many :invoice_bookings, dependent: :destroy
@@ -15,6 +16,8 @@ class Booking < ApplicationRecord
   }
 
   validates :check_in, :check_out, presence: true
+  validates :invoice_number, presence: true, uniqueness: { scope: :organization_id }
+  scope :for_organization, ->(org_id) { where(organization_id: org_id) }
 
   private
 

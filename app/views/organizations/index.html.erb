@@ -1,0 +1,156 @@
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-12">
+
+      <% if notice %>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <%= notice %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+
+      <% if alert %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <%= alert %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+
+      <!-- Page Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="mb-0">Organizations</h1>
+          <small class="text-muted">Manage all hotel properties</small>
+        </div>
+        <%= link_to new_organization_path, class: "btn text-white", style: "background-color: #007bff;" do %>
+          <i class="bi bi-plus-circle"></i> Add Organization
+        <% end %>
+      </div>
+
+      <!-- Organizations Grid -->
+      <div class="row g-4">
+        <% @organizations.each do |org| %>
+          <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm h-100 <%= org.active? ? '' : 'border-danger' %>">
+              <div class="card-header text-white d-flex justify-content-between align-items-center"
+                   style="background-color: #2c3e50;">
+                <h5 class="mb-0">
+                  <i class="bi bi-building"></i>
+                  <%= org.name %>
+                </h5>
+                <% if org.active? %>
+                  <span class="badge bg-success">Active</span>
+                <% else %>
+                  <span class="badge bg-danger">Inactive</span>
+                <% end %>
+              </div>
+
+              <div class="card-body">
+                <!-- Basic Info -->
+                <div class="mb-3">
+                  <small class="text-muted d-block">
+                    <i class="bi bi-link-45deg"></i> Slug
+                  </small>
+                  <strong><%= org.slug %></strong>
+                </div>
+
+                <% if org.email.present? %>
+                  <div class="mb-3">
+                    <small class="text-muted d-block">
+                      <i class="bi bi-envelope"></i> Email
+                    </small>
+                    <%= org.email %>
+                  </div>
+                <% end %>
+
+                <% if org.phone.present? %>
+                  <div class="mb-3">
+                    <small class="text-muted d-block">
+                      <i class="bi bi-telephone"></i> Phone
+                    </small>
+                    <%= org.phone %>
+                  </div>
+                <% end %>
+
+                <% if org.city.present? %>
+                  <div class="mb-3">
+                    <small class="text-muted d-block">
+                      <i class="bi bi-geo-alt"></i> Location
+                    </small>
+                    <%= [org.city, org.state, org.country].compact.join(', ') %>
+                  </div>
+                <% end %>
+
+                <!-- Statistics -->
+                <div class="row g-2 mt-3">
+                  <div class="col-6">
+                    <div class="text-center p-2 bg-light rounded">
+                      <small class="text-muted d-block">Users</small>
+                      <strong class="text-primary"><%= org.users.count %></strong>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="text-center p-2 bg-light rounded">
+                      <small class="text-muted d-block">Rooms</small>
+                      <strong class="text-success"><%= org.rooms.count %></strong>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="text-center p-2 bg-light rounded">
+                      <small class="text-muted d-block">Bookings</small>
+                      <strong class="text-info"><%= org.bookings.count %></strong>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="text-center p-2 bg-light rounded">
+                      <small class="text-muted d-block">Invoices</small>
+                      <strong class="text-warning"><%= org.invoices.count %></strong>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Settings Preview -->
+                <div class="mt-3 p-2 bg-light rounded">
+                  <small class="text-muted d-block mb-1">Settings</small>
+                  <div class="d-flex gap-2 flex-wrap">
+                    <span class="badge bg-secondary">
+                      <i class="bi bi-receipt"></i> <%= org.settings['invoice_prefix'] || 'INV' %>
+                    </span>
+                    <span class="badge bg-secondary">
+                      <i class="bi bi-currency-rupee"></i> <%= org.currency %>
+                    </span>
+                    <span class="badge bg-secondary">
+                      <i class="bi bi-clock"></i> <%= org.timezone %>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="card-footer bg-white d-flex justify-content-between">
+                <%= link_to "View Details", organization_path(org), 
+                    class: "btn btn-sm btn-outline-primary" %>
+                <%= link_to "Edit", edit_organization_path(org), 
+                    class: "btn btn-sm btn-outline-secondary" %>
+                <%= button_to "Delete", organization_path(org), 
+                    method: :delete,
+                    class: "btn btn-sm btn-outline-danger",
+                    data: { confirm: "Delete #{org.name}? This will remove all associated data!" } %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
+        <% if @organizations.empty? %>
+          <div class="col-12">
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle"></i>
+              No organizations found. Click "Add Organization" to create one.
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+    </div>
+  </div>
+</div>

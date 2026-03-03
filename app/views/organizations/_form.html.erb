@@ -1,0 +1,170 @@
+<%= form_with(model: organization, local: true) do |form| %>
+  <% if organization.errors.any? %>
+    <div class="alert alert-danger">
+      <h6 class="alert-heading">
+        <%= pluralize(organization.errors.count, "error") %> prevented this organization from being saved:
+      </h6>
+      <ul class="mb-0">
+        <% organization.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <!-- Basic Information -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header text-white" style="background-color: #2c3e50;">
+      <h5 class="mb-0">Basic Information</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :name, class: "form-label fw-bold" %>
+          <%= form.text_field :name, class: "form-control", required: true, 
+              placeholder: "Hotel Name" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :slug, class: "form-label fw-bold" %>
+          <%= form.text_field :slug, class: "form-control", required: true,
+              placeholder: "hotel-name" %>
+          <small class="form-text text-muted">
+            Used in URLs. Only lowercase letters, numbers, and hyphens.
+          </small>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :email, class: "form-label fw-bold" %>
+          <%= form.email_field :email, class: "form-control",
+              placeholder: "contact@hotel.com" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :phone, class: "form-label fw-bold" %>
+          <%= form.text_field :phone, class: "form-control",
+              placeholder: "+91-1234567890" %>
+        </div>
+
+        <div class="col-md-12 mb-3">
+          <%= form.label :address, class: "form-label fw-bold" %>
+          <%= form.text_area :address, class: "form-control", rows: 2,
+              placeholder: "Street address" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :city, class: "form-label fw-bold" %>
+          <%= form.text_field :city, class: "form-control",
+              placeholder: "Kolkata" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :state, class: "form-label fw-bold" %>
+          <%= form.text_field :state, class: "form-control",
+              placeholder: "West Bengal" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :country, class: "form-label fw-bold" %>
+          <%= form.text_field :country, class: "form-control",
+              placeholder: "India" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :postal_code, class: "form-label fw-bold" %>
+          <%= form.text_field :postal_code, class: "form-control",
+              placeholder: "700001" %>
+        </div>
+
+        <div class="col-md-12 mb-3">
+          <%= form.label :tax_id, "Tax ID / GST Number", class: "form-label fw-bold" %>
+          <%= form.text_field :tax_id, class: "form-control",
+              placeholder: "22AAAAA0000A1Z5" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Configuration -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header text-white" style="background-color: #2c3e50;">
+      <h5 class="mb-0">Configuration</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= form.label :currency, class: "form-label fw-bold" %>
+          <%= form.select :currency, 
+              [['Indian Rupee (INR)', 'INR'], ['US Dollar (USD)', 'USD'], 
+               ['Euro (EUR)', 'EUR'], ['British Pound (GBP)', 'GBP']],
+              {}, class: "form-select" %>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <%= form.label :timezone, class: "form-label fw-bold" %>
+          <%= form.select :timezone,
+              [['Asia/Kolkata', 'Asia/Kolkata'], ['Asia/Mumbai', 'Asia/Mumbai'],
+               ['UTC', 'UTC'], ['America/New_York', 'America/New_York']],
+              {}, class: "form-select" %>
+        </div>
+
+        <div class="col-md-12 mb-3">
+          <%= form.label :logo_url, "Logo URL", class: "form-label fw-bold" %>
+          <%= form.text_field :logo_url, class: "form-control",
+              placeholder: "https://example.com/logo.png" %>
+          <small class="form-text text-muted">URL to organization logo</small>
+        </div>
+
+        <div class="col-md-12 mb-3">
+          <div class="form-check">
+            <%= form.check_box :active, class: "form-check-input" %>
+            <%= form.label :active, "Active", class: "form-check-label" %>
+            <small class="form-text text-muted d-block">
+              Inactive organizations cannot be used
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings (JSON) -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header text-white" style="background-color: #2c3e50;">
+      <h5 class="mb-0">Invoice Settings</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-bold">Invoice Prefix</label>
+          <%= text_field_tag 'organization[settings][invoice_prefix]',
+              organization.settings['invoice_prefix'],
+              class: "form-control",
+              placeholder: "INV" %>
+          <small class="form-text text-muted">
+            Prefix for invoice numbers (e.g., SAR, INV)
+          </small>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-bold">Default Tax Rate (%)</label>
+          <%= number_field_tag 'organization[settings][default_tax_rate]',
+              organization.settings['default_tax_rate'],
+              class: "form-control",
+              step: 0.01,
+              placeholder: "18.0" %>
+          <small class="form-text text-muted">
+            Default GST/Tax rate for invoices
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submit Button -->
+  <div class="d-grid gap-2">
+    <%= form.submit organization.new_record? ? "Create Organization" : "Update Organization",
+        class: "btn btn-lg text-white",
+        style: "background-color: #007bff;" %>
+  </div>
+<% end %>

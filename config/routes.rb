@@ -18,6 +18,10 @@ Rails.application.routes.draw do
       patch :update_price
     end
   end
+
+  authenticate :user, ->(u) { u.super_admin? } do
+    resources :organizations
+  end
   
   resources :invoices do
     member do

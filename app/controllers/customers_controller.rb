@@ -1,87 +1,68 @@
 class CustomersController < ApplicationController
-  before_action :set_customer, only: %i[ show edit update destroy ]
+  before_action :set_customer, only: [:show, :edit, :update, :destroy]
 
-  # GET /customers or /customers.json
   def index
-    @customers = Customer.all
+    @customers = current_organization.customers.order(:name)
   end
 
-  # GET /customers/1 or /customers/1.json
   def show
+    # Customer already set and scoped by before_action
   end
 
-  # GET /customers/new
   def new
-    @customer = Customer.new(is_guest: false)
+    @customer = current_organization.customers.new
   end
 
-  # GET /customers/1/edit
-  def edit
-  end
-
-  # POST /customers or /customers.json
   def create
-    @customer = Customer.new(customer_params)
-
-    respond_to do |format|
-      if @customer.save
-        format.html { redirect_to @customer, notice: "Customer was successfully created." }
-        format.json { render :show, status: :created, location: @customer }
-      else
-        format.html { render :new, status: :unprocessable_entity }
-        format.json { render json: @customer.errors, status: :unprocessable_entity }
-      end
+    @customer = current_organization.customers.new(customer_params)
+    
+    if @customer.save
+      redirect_to customers_path, notice: "Customer created successfully"
+    else
+      render :new, status: :unprocessable_entity
     end
   end
 
-  # PATCH/PUT /customers/1 or /customers/1.json
+  def edit
+    # Customer already set and scoped by before_action
+  end
+
   def update
-    respond_to do |format|
-      if @customer.update(customer_params)
-        format.html { redirect_to @customer, notice: "Customer was successfully updated.", status: :see_other }
-        format.json { render :show, status: :ok, location: @customer }
-      else
-        format.html { render :edit, status: :unprocessable_entity }
-        format.json { render json: @customer.errors, status: :unprocessable_entity }
-      end
+    if @customer.update(customer_params)
+      redirect_to customers_path, notice: "Customer updated successfully"
+    else
+      render :edit, status: :unprocessable_entity
     end
   end
 
-  # DELETE /customers/1 or /customers/1.json
   def destroy
-    @customer.destroy!
-
-    respond_to do |format|
-      format.html { redirect_to customers_path, notice: "Customer was successfully destroyed.", status: :see_other }
-      format.json { head :no_content }
+    # Check if customer has any bookings
+    if @customer.bookings.any?
+      redirect_to customers_path, alert: "Cannot delete customer with existing bookings"
+      return
     end
+
+    @customer.destroy
+    redirect_to customers_path, notice: "Customer deleted successfully"
   end
 
   def search
     q = params[:q]
-
-    customers = Customer
-      .where("name ILIKE ? OR phone ILIKE ?", "%#{q}%", "%#{q}%")
-      .limit(20)
-
-    render json: customers
+    @customers = current_organization.customers
+                                    .where("name ILIKE ? OR phone ILIKE ?", "%#{q}%", "%#{q}%")
+                                    .limit(20)
+    render json: @customers
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_customer
-      @customer = Customer.find(params[:id])
-    end
 
-    # Only allow a list of trusted parameters through.
-    
-    def customer_params
-      params.require(:customer).permit(
-        :name,
-        :phone,
-        :email,
-        :is_guest,
-        :payer_id
-      )
-    end
+  def set_customer
+    @customer = current_organization.customers.find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    redirect_to customers_path, alert: "Customer not found or access denied"
+  end
+
+  def customer_params
+    params.require(:customer).permit(:name, :phone, :email, :is_guest, :payer_id)
+  end
 end

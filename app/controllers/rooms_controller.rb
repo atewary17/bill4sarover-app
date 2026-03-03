@@ -3,18 +3,18 @@ class RoomsController < ApplicationController
   before_action -> { authorize @room || Room }
 
   def index
-    @rooms = Room.all.order(:room_number)
+    @rooms = current_organization.rooms.order(:room_number)
   end
 
   def show
   end
 
   def new
-    @room = Room.new
+    @room = current_organization.rooms.new
   end
 
   def create
-    @room = Room.new(room_params)
+    @room = current_organization.rooms.new(room_params)
     
     if @room.save
       redirect_to rooms_path, notice: "Room created successfully"
@@ -43,6 +43,11 @@ class RoomsController < ApplicationController
   end
 
   def destroy
+    if @room.bookings.any?
+      redirect_to rooms_path, alert: "Cannot delete room with existing bookings"
+      return
+    end
+
     @room.destroy
     redirect_to rooms_path, notice: "Room deleted successfully"
   end
@@ -50,7 +55,9 @@ class RoomsController < ApplicationController
   private
 
   def set_room
-    @room = Room.find(params[:id])
+    @room = current_organization.rooms.find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    redirect_to rooms_path, alert: "Room not found or access denied"
   end
 
   def room_params

@@ -1,0 +1,154 @@
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-10">
+
+      <!-- Page Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="mb-0">
+            <i class="bi bi-building"></i>
+            <%= @organization.name %>
+          </h1>
+          <small class="text-muted">Organization Details</small>
+        </div>
+        <div class="d-flex gap-2">
+          <%= link_to "Back", organizations_path, class: "btn btn-secondary" %>
+          <%= link_to "Edit", edit_organization_path(@organization), 
+              class: "btn text-white", style: "background-color: #007bff;" %>
+        </div>
+      </div>
+
+      <!-- Status Badge -->
+      <div class="mb-4">
+        <% if @organization.active? %>
+          <span class="badge bg-success fs-6">Active</span>
+        <% else %>
+          <span class="badge bg-danger fs-6">Inactive</span>
+        <% end %>
+      </div>
+
+      <!-- Statistics Cards -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <div class="card shadow-sm">
+            <div class="card-body text-center">
+              <i class="bi bi-people fs-1 text-primary"></i>
+              <h3 class="mt-2 mb-0"><%= @users_count %></h3>
+              <small class="text-muted">Users</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card shadow-sm">
+            <div class="card-body text-center">
+              <i class="bi bi-door-open fs-1 text-success"></i>
+              <h3 class="mt-2 mb-0"><%= @rooms_count %></h3>
+              <small class="text-muted">Rooms</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card shadow-sm">
+            <div class="card-body text-center">
+              <i class="bi bi-calendar-check fs-1 text-info"></i>
+              <h3 class="mt-2 mb-0"><%= @bookings_count %></h3>
+              <small class="text-muted">Bookings</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card shadow-sm">
+            <div class="card-body text-center">
+              <i class="bi bi-receipt fs-1 text-warning"></i>
+              <h3 class="mt-2 mb-0"><%= @invoices_count %></h3>
+              <small class="text-muted">Invoices</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card shadow-sm">
+            <div class="card-body text-center">
+              <i class="bi bi-currency-rupee fs-1 text-success"></i>
+              <h3 class="mt-2 mb-0">
+                ₹<%= number_with_precision(@total_revenue, precision: 0, delimiter: ',') %>
+              </h3>
+              <small class="text-muted">Total Revenue</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Organization Details -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header text-white" style="background-color: #2c3e50;">
+          <h5 class="mb-0">Organization Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <small class="text-muted text-uppercase fw-bold">Name</small>
+              <p class="mb-0"><%= @organization.name %></p>
+            </div>
+            <div class="col-md-6 mb-3">
+              <small class="text-muted text-uppercase fw-bold">Slug</small>
+              <p class="mb-0"><code><%= @organization.slug %></code></p>
+            </div>
+            <div class="col-md-6 mb-3">
+              <small class="text-muted text-uppercase fw-bold">Email</small>
+              <p class="mb-0"><%= @organization.email || "—" %></p>
+            </div>
+            <div class="col-md-6 mb-3">
+              <small class="text-muted text-uppercase fw-bold">Phone</small>
+              <p class="mb-0"><%= @organization.phone || "—" %></p>
+            </div>
+            <div class="col-md-12 mb-3">
+              <small class="text-muted text-uppercase fw-bold">Address</small>
+              <p class="mb-0">
+                <%= [@organization.address, @organization.city, @organization.state, 
+                     @organization.country, @organization.postal_code].compact.join(', ').presence || "—" %>
+              </p>
+            </div>
+            <div class="col-md-6 mb-3">
+              <small class="text-muted text-uppercase fw-bold">Tax ID / GST</small>
+              <p class="mb-0"><%= @organization.tax_id || "—" %></p>
+            </div>
+            <div class="col-md-6 mb-3">
+              <small class="text-muted text-uppercase fw-bold">Currency</small>
+              <p class="mb-0"><%= @organization.currency %></p>
+            </div>
+            <div class="col-md-6 mb-3">
+              <small class="text-muted text-uppercase fw-bold">Timezone</small>
+              <p class="mb-0"><%= @organization.timezone %></p>
+            </div>
+            <div class="col-md-6 mb-3">
+              <small class="text-muted text-uppercase fw-bold">Created</small>
+              <p class="mb-0"><%= @organization.created_at.strftime("%d %b %Y") %></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Card -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header text-white" style="background-color: #2c3e50;">
+          <h5 class="mb-0">Settings</h5>
+        </div>
+        <div class="card-body">
+          <% if @organization.settings.present? %>
+            <div class="row">
+              <% @organization.settings.each do |key, value| %>
+                <div class="col-md-6 mb-3">
+                  <small class="text-muted text-uppercase fw-bold"><%= key.humanize %></small>
+                  <p class="mb-0"><%= value %></p>
+                </div>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="text-muted mb-0">No custom settings configured</p>
+          <% end %>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
