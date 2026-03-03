@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for?(:title) ? yield(:title) : current_user.organization.name %></title>
+    <title><%= content_for?(:title) ? yield(:title) : (current_user&.organization&.name || "Oracle Hotel") %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -179,7 +179,7 @@
     <header class="app-navbar">
       <%= link_to root_path, class: "brand" do %>
         <i class="bi bi-building"></i>
-        <%= current_user.organization.name %>
+          <%= current_user&.organization&.name || "Oracle Hotel" %>
       <% end %>
 
       <% if user_signed_in? %>
