@@ -31,7 +31,6 @@ org = Organization.find_or_create_by!(name: "Oracle PVT LTD") do |o|
   o.slug      = "oracle-hotel"
   o.tax_id    = "27AABCU9603R1ZX"   
   o.address   = "Mumbai, Maharashtra, India"
-  o.status    = :active
   o.email      = "info@oraclehotel.com"
   o.phone     = "+91-9876543210"
 end
