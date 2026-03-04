@@ -7,6 +7,10 @@ class RoomPolicy < ApplicationPolicy
     true
   end
 
+  def copy_to_org?
+    user.super_admin?
+  end
+
   def create?
     user.super_admin? || user.admin?
   end

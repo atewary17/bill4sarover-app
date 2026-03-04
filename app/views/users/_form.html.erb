@@ -12,14 +12,38 @@
     </div>
   <% end %>
 
+  <!-- Organization Selection (Super Admin Only) -->
+  <% if current_user.super_admin? && Organization.count > 1 %>
+    <div class="mb-3">
+      <%= form.label :organization_id, "Organization", class: "form-label fw-bold" %>
+      <%= form.collection_select :organization_id,
+          Organization.active.order(:name),
+          :id,
+          :name,
+          { prompt: 'Select organization' },
+          class: "form-select",
+          required: true %>
+      <small class="form-text text-muted">
+        Select which organization this user belongs to
+      </small>
+    </div>
+  <% else %>
+    <%= form.hidden_field :organization_id, value: current_user.organization_id %>
+  <% end %>
+
   <div class="mb-3">
     <%= form.label :name, class: "form-label fw-bold" %>
-    <%= form.text_field :name, class: "form-control", required: true %>
+    <%= form.text_field :name, class: "form-control", required: true, placeholder: "Full Name" %>
   </div>
 
   <div class="mb-3">
     <%= form.label :email, class: "form-label fw-bold" %>
-    <%= form.email_field :email, class: "form-control", required: true %>
+    <%= form.email_field :email, class: "form-control", required: true, placeholder: "user@example.com" %>
+    <% unless user.new_record? %>
+      <small class="form-text text-muted">
+        Current email: <%= user.email %>
+      </small>
+    <% end %>
   </div>
 
   <div class="mb-3">
@@ -29,17 +53,28 @@
         {},
         class: "form-select",
         required: true %>
+    <small class="form-text text-muted">
+      <strong>Super Admin:</strong> Full system access, can manage all organizations<br>
+      <strong>Admin:</strong> Can manage rooms, bookings, and invoices<br>
+      <strong>Staff:</strong> Can manage bookings and view reports
+    </small>
   </div>
 
   <% if user.new_record? %>
     <div class="alert alert-info">
-      <small>A random password will be generated and displayed after creation.</small>
+      <i class="bi bi-info-circle"></i>
+      <strong>Password Generation:</strong> A random secure password will be generated and displayed after creation. Make sure to save it!
+    </div>
+  <% else %>
+    <div class="alert alert-warning">
+      <i class="bi bi-shield-lock"></i>
+      <strong>Password:</strong> Use the "Reset Password" button to generate a new password for this user.
     </div>
   <% end %>
 
   <div class="d-grid gap-2">
     <%= form.submit user.new_record? ? "Create User" : "Update User",
-        class: "btn text-white",
+        class: "btn btn-lg text-white",
         style: "background-color: #007bff;" %>
   </div>
 <% end %>

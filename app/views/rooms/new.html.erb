@@ -1,0 +1,81 @@
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      
+      <% if notice %>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <%= notice %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% end %>
+
+      <div class="card shadow-sm">
+        <div class="card-header text-white" style="background-color: #2c3e50;">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <i class="bi bi-door-open me-2"></i>New Room
+            </h5>
+            <%= link_to rooms_path, class: "btn btn-sm btn-outline-light" do %>
+              <i class="bi bi-arrow-left"></i> Back
+            <% end %>
+          </div>
+        </div>
+        
+        <div class="card-body p-4">
+          <%= form_with model: @room, local: true, class: "needs-validation" do |form| %>
+            <div class="row g-4">
+              
+              <div class="col-md-6">
+                <%= form.label :room_number, "Room Number", class: "form-label fw-semibold" %>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-hash"></i></span>
+                  <%= form.text_field :room_number, class: "form-control", required: true, maxlength: 10 %>
+                </div>
+                <%= form.label :room_number, class: "text-muted small", style: "margin-left: 38px;" do %>
+                  Unique within organization
+                <% end %>
+              </div>
+
+              <div class="col-md-6">
+                <%= form.label :room_type, "Room Type", class: "form-label fw-semibold" %>
+                <%= form.select :room_type, 
+                    options_for_select(Room::ROOM_TYPES.map { |type| [type.gsub('_', ' ').titleize, type] }),
+                    { prompt: "Select room type" }, 
+                    { class: "form-select", required: true } %>
+              </div>
+
+              <div class="col-md-6">
+                <%= form.label :base_price_per_night, "Base Price/Night", class: "form-label fw-semibold" %>
+                <div class="input-group">
+                  <span class="input-group-text">₹</span>
+                  <%= form.number_field :base_price_per_night, 
+                      class: "form-control", 
+                      step: "0.01", 
+                      min: "100", 
+                      required: true,
+                      placeholder: "2500" %>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <%= form.label :status, "Initial Status", class: "form-label fw-semibold" %>
+                <%= form.select :status, 
+                    options_for_select(Room::STATUSES.map { |s| [s.humanize, s] }),
+                    { prompt: "Select status" }, 
+                    { class: "form-select", required: true } %>
+              </div>
+
+            </div>
+
+            <div class="d-flex gap-3 justify-content-end mt-5">
+              <%= link_to rooms_path, class: "btn btn-outline-secondary" do %>
+                <i class="bi bi-x-circle"></i> Cancel
+              <% end %>
+              <%= form.submit "Create Room", class: "btn btn-primary px-4" %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -24,6 +24,7 @@ gem 'matrix'
 gem 'prawn'
 gem 'prawn-table'
 gem 'pundit'
+gem 'friendly_id', '~> 5.5'
 
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ]

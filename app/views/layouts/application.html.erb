@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for?(:title) ? yield(:title) : "Sarover" %></title>
+    <title><%= content_for?(:title) ? yield(:title) : (current_user&.organization&.name || "Oracle Hotel") %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -179,7 +179,7 @@
     <header class="app-navbar">
       <%= link_to root_path, class: "brand" do %>
         <i class="bi bi-building"></i>
-        Sarover
+          <%= current_user&.organization&.name || "Oracle Hotel" %>
       <% end %>
 
       <% if user_signed_in? %>
@@ -202,6 +202,13 @@
           <%= link_to invoices_path,
                 class: "#{controller_name == 'invoices' ? 'active' : ''}" do %>
             <i class="bi bi-receipt"></i> Invoices
+          <% end %>
+
+          <% if current_user.super_admin? %>
+            <%= link_to organizations_path,
+                  class: "#{controller_name == 'organizations' ? 'active' : ''}" do %>
+              <i class="bi bi-building"></i> Organizations
+            <% end %>
           <% end %>
 
           <% if current_user.can_manage_rooms? %>

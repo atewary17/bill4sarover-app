@@ -5,40 +5,44 @@ class InvoicesController < ApplicationController
     @from = params[:from].presence&.to_date || 10.days.ago.to_date
     @to   = params[:to].presence&.to_date || 10.days.from_now.to_date
 
-    @invoices = Invoice.includes(:invoice_items, :bookings)
-                       .where("created_at >= ? AND created_at <= ?", 
-                              @from.beginning_of_day, 
-                              @to.end_of_day)
-                       .order(created_at: :desc)
+    @invoices = current_organization.invoices
+                                   .includes(:invoice_items, :bookings)
+                                   .where("created_at >= ? AND created_at <= ?", 
+                                          @from.beginning_of_day, 
+                                          @to.end_of_day)
+                                   .order(created_at: :desc)
   end
 
   def new
-    @invoice = Invoice.new
-    @bookings = Booking.where(id: params[:booking_ids])
-                       .where.not(status: :invoiced)
+    @invoice = current_organization.invoices.new
+    
+    # Only get bookings from current organization
+    @bookings = current_organization.bookings
+                                   .where(id: params[:booking_ids])
+                                   .where.not(status: :invoiced)
     
     if @bookings.empty? && params[:booking_ids].present?
-      redirect_to bookings_path, alert: "Selected bookings are already invoiced"
+      redirect_to bookings_path, alert: "Selected bookings are already invoiced or not found"
       return
     end
     
+    # Only get customers from current organization
     @customers = if @bookings.any?
       (
         @bookings.map(&:customer) +
         @bookings.map { |b| b.customer&.payer }.compact
       ).uniq
     else
-      Customer.order(:name)
+      current_organization.customers.order(:name)
     end
   end
 
   def create
-    @invoice = Invoice.new(invoice_params)
+    @invoice = current_organization.invoices.new(invoice_params)
     @invoice.invoice_number = generate_invoice_number
-    @invoice.status         = "draft"
+    @invoice.status = "draft"
 
     resolve_billed_to
-
     build_booking_items
     build_extra_items
     build_adhoc_items
@@ -55,38 +59,20 @@ class InvoicesController < ApplicationController
       
     rescue ActiveRecord::RecordInvalid => e
       Rails.logger.error "Invoice creation failed: #{e.message}"
-      Rails.logger.error e.backtrace.join("\n")
       
-      @bookings = Booking.where(id: params[:booking_ids])
-                         .where.not(status: :invoiced)
+      @bookings = current_organization.bookings
+                                     .where(id: params[:booking_ids])
+                                     .where.not(status: :invoiced)
       @customers = if @bookings.any?
         (
           @bookings.map(&:customer) +
           @bookings.map { |b| b.customer&.payer }.compact
         ).uniq
       else
-        Customer.order(:name)
+        current_organization.customers.order(:name)
       end
       
       @invoice.errors.add(:base, "Failed to create invoice: #{e.message}")
-      render :new, status: :unprocessable_entity
-      
-    rescue StandardError => e
-      Rails.logger.error "Unexpected error during invoice creation: #{e.message}"
-      Rails.logger.error e.backtrace.join("\n")
-      
-      @bookings = Booking.where(id: params[:booking_ids])
-                         .where.not(status: :invoiced)
-      @customers = if @bookings.any?
-        (
-          @bookings.map(&:customer) +
-          @bookings.map { |b| b.customer&.payer }.compact
-        ).uniq
-      else
-        Customer.order(:name)
-      end
-      
-      @invoice.errors.add(:base, "An unexpected error occurred. Please try again.")
       render :new, status: :unprocessable_entity
     end
   end
@@ -97,7 +83,6 @@ class InvoicesController < ApplicationController
     @balance_due = @invoice.total_amount - @total_paid
   end
 
-  # Mark invoice as issued
   def issue
     if @invoice.draft?
       append_note("Invoice issued on #{Time.current.strftime('%d %b %Y at %H:%M')}")
@@ -108,7 +93,6 @@ class InvoicesController < ApplicationController
     end
   end
 
-  # Record partial payment
   def record_payment
     amount = params[:amount].to_d
     payment_note = params[:payment_note]
@@ -127,7 +111,6 @@ class InvoicesController < ApplicationController
     end
 
     ActiveRecord::Base.transaction do
-      # Create payment record
       payment = @invoice.payments.create!(
         amount: amount,
         payment_method: params[:payment_method] || "cash",
@@ -136,7 +119,6 @@ class InvoicesController < ApplicationController
         paid_at: Time.current
       )
 
-      # Update invoice status
       new_total_paid = total_paid + amount
       if new_total_paid >= @invoice.total_amount
         @invoice.update!(status: :paid)
@@ -146,7 +128,6 @@ class InvoicesController < ApplicationController
         append_note("Partial payment on #{Time.current.strftime('%d %b %Y at %H:%M')} - Rs #{amount}")
       end
 
-      # Store payment ID in flash for JavaScript to use
       flash[:payment_id] = payment.id
       flash[:notice] = "Payment recorded successfully"
       
@@ -156,7 +137,6 @@ class InvoicesController < ApplicationController
     redirect_to @invoice, alert: "Failed to record payment: #{e.message}"
   end
 
-  # Mark invoice as paid
   def mark_paid
     if @invoice.paid?
       redirect_to @invoice, alert: "Invoice is already paid"
@@ -184,7 +164,6 @@ class InvoicesController < ApplicationController
       
       @invoice.update!(status: :paid)
 
-      # Store payment ID in flash
       flash[:payment_id] = payment.id
       flash[:notice] = "Invoice marked as paid"
       
@@ -194,7 +173,6 @@ class InvoicesController < ApplicationController
     redirect_to @invoice, alert: "Failed to mark as paid: #{e.message}"
   end
 
-  # Mark invoice as void
   def mark_void
     if @invoice.void?
       redirect_to @invoice, alert: "Invoice is already void"
@@ -215,7 +193,6 @@ class InvoicesController < ApplicationController
     redirect_to @invoice, notice: "Invoice marked as void"
   end
 
-  # Download invoice PDF
   def download_pdf
     pdf = InvoicePdf.new(@invoice)
     send_data pdf.render,
@@ -224,7 +201,6 @@ class InvoicesController < ApplicationController
               disposition: "inline"
   end
 
-  # Download receipt PDF
   def download_receipt
     payment = @invoice.payments.find_by(id: params[:payment_id]) || @invoice.payments.last
     
@@ -243,7 +219,9 @@ class InvoicesController < ApplicationController
   private
 
   def set_invoice
-    @invoice = Invoice.includes(:invoice_items, :bookings, :payments).find(params[:id])
+    @invoice = current_organization.invoices.includes(:invoice_items, :bookings, :payments).find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    redirect_to invoices_path, alert: "Invoice not found or access denied"
   end
 
   def append_note(new_note)
@@ -276,7 +254,8 @@ class InvoicesController < ApplicationController
   def resolve_billed_to
     return unless @invoice.billed_to_id.present?
 
-    customer = Customer.find_by(id: @invoice.billed_to_id)
+    # Verify customer belongs to current organization
+    customer = current_organization.customers.find_by(id: @invoice.billed_to_id)
     return unless customer
 
     @invoice.billed_to_type  = "Customer"
@@ -289,7 +268,7 @@ class InvoicesController < ApplicationController
     return unless params[:booking_ids].present?
 
     params[:booking_ids].each do |booking_id|
-      booking = Booking.find_by(id: booking_id)
+      booking = current_organization.bookings.find_by(id: booking_id)
       next unless booking
       next if booking.invoiced?
 
@@ -407,7 +386,7 @@ class InvoicesController < ApplicationController
     return unless params[:booking_ids].present?
 
     params[:booking_ids].each do |booking_id|
-      booking = Booking.find_by(id: booking_id)
+      booking = current_organization.bookings.find_by(id: booking_id)
       next unless booking
       next if booking.invoiced?
       
@@ -419,34 +398,14 @@ class InvoicesController < ApplicationController
     return unless params[:booking_ids].present?
 
     params[:booking_ids].each do |booking_id|
-      booking = Booking.find_by(id: booking_id)
+      booking = current_organization.bookings.find_by(id: booking_id)
       next unless booking
       
       booking.invoiced! unless booking.invoiced?
     end
   end
 
-  # def generate_invoice_number
-  #   "SAR-#{Time.current.strftime('%Y%m%d')}-#{SecureRandom.hex(3).upcase}"
-  # end
-
   def generate_invoice_number
-    date_part = Time.current.strftime('%Y%m%d')
-
-    last_invoice = Invoice
-      .where("invoice_number LIKE ?", "SAR-#{date_part}-%")
-      .order(:created_at)
-      .last
-
-    last_serial =
-      if last_invoice.present?
-        last_invoice.invoice_number.split('-').last.to_i
-      else
-        0
-      end
-
-    new_serial = last_serial + 1
-
-    "SAR-#{date_part}-#{format('%05d', new_serial)}"
+    current_organization.next_invoice_number
   end
 end

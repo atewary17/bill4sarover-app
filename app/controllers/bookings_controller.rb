@@ -1,122 +1,150 @@
 class BookingsController < ApplicationController
-  before_action :set_booking, only: %i[ show edit update destroy check_in check_out cancel ]
+  before_action :set_booking, only: [:show, :edit, :update, :check_in, :check_out, :cancel]
 
   def index
-    # Default date range: last 30 days to today
-    @from = params[:from].presence || 15.days.ago.to_date
-    @to   = params[:to].presence || Date.today + 15.days
+    @from = params[:from].presence&.to_date || 30.days.ago.to_date
+    @to = params[:to].presence&.to_date || Date.today
 
-    @bookings = Booking.includes(:customer, :room).order(check_in: :desc)
-
-    # Apply date filter
-    @bookings = @bookings.where(
-      "check_in >= ? AND check_out <= ?",
-      @from.to_date.beginning_of_day,
-      @to.to_date.end_of_day
-    )
+    @bookings = current_organization.bookings
+                                   .includes(:customer, :room)
+                                   .where("check_in >= ? AND check_in <= ?", 
+                                          @from.beginning_of_day, 
+                                          @to.end_of_day)
+                                   .order(check_in: :desc)
   end
 
   def show
+    # Booking already set and scoped by before_action
   end
 
   def new
-    @check_in  = (params[:to].presence || Time.current).change(sec: 0)
-
-    @booking = Booking.new(
-      status: "booked",
-    )
-  end
-
-  def edit
+    @booking = current_organization.bookings.new
+    
+    # Only show rooms from current organization
+    @rooms = current_organization.rooms.order(:room_number)
+    
+    # Only show customers from current organization
+    @customers = current_organization.customers.order(:name)
   end
 
   def create
-    @booking = Booking.new(booking_params)
-    @booking.status = "booked"
-
+    @booking = current_organization.bookings.new(booking_params)
+    
     if @booking.save
       redirect_to @booking, notice: "Booking created successfully"
     else
+      @rooms = current_organization.rooms.order(:room_number)
+      @customers = current_organization.customers.order(:name)
       render :new, status: :unprocessable_entity
     end
+  end
+
+  def edit
+    @rooms = current_organization.rooms.order(:room_number)
+    @customers = current_organization.customers.order(:name)
   end
 
   def update
     if @booking.update(booking_params)
       redirect_to @booking, notice: "Booking updated successfully"
     else
+      @rooms = current_organization.rooms.order(:room_number)
+      @customers = current_organization.customers.order(:name)
       render :edit, status: :unprocessable_entity
     end
   end
 
-  def destroy
-    @booking.destroy
-    redirect_to bookings_path, notice: "Booking deleted successfully"
-  end
-
-  def view_rooms
-    @rooms = Room.order(:room_number)
-  end
-
-  def available_rooms
-    check_in = params[:check_in]
-    check_out = params[:check_out]
-
-    booked_room_ids = Booking
-      .where.not(status: [:cancelled, :checked_out, :booked])
-      .where("check_in < ? AND check_out > ?", check_out, check_in)
-      .pluck(:room_id)
-
-    @rooms = Room.where.not(id: booked_room_ids)
-
-    render json: @rooms.select(:id, :room_number, :room_type)
-  end
-
   def check_in
-    @booking = Booking.find(params[:id])
-    @booking.update(status: "checked_in")
-    redirect_to @booking, notice: "Guest checked in"
+    if @booking.booked?
+      @booking.checked_in!
+      redirect_to @booking, notice: "Booking checked in successfully"
+    else
+      redirect_to @booking, alert: "Only booked bookings can be checked in"
+    end
   end
 
   def check_out
-    @booking = Booking.find(params[:id])
-    @booking.update(status: "checked_out")
-    redirect_to @booking, notice: "Guest checked out"
-  end
-
-
-  def check_room_status
-    booked = Booking.booked_for_dates?(
-      params[:room_id],
-      params[:check_in],
-      params[:check_out]
-    )
-    render json: { booked: booked }
+    if @booking.checked_in?
+      @booking.checked_out!
+      redirect_to @booking, notice: "Booking checked out successfully"
+    else
+      redirect_to @booking, alert: "Only checked-in bookings can be checked out"
+    end
   end
 
   def cancel
-    @booking = Booking.find(params[:id])
-    @booking.update(status: :cancelled)
+    if @booking.booked? || @booking.checked_in?
+      @booking.cancelled!
+      redirect_to @booking, notice: "Booking cancelled successfully"
+    else
+      redirect_to @booking, alert: "This booking cannot be cancelled"
+    end
+  end
 
-    redirect_to @booking, notice: "Booking cancelled successfully"
+  def available_rooms
+    check_in = params[:check_in].to_date
+    check_out = params[:check_out].to_date
+
+    # Get all rooms for this organization
+    all_rooms = current_organization.rooms
+
+    # Find bookings that overlap with the requested dates
+    conflicting_bookings = current_organization.bookings
+                                              .where.not(status: [:cancelled, :invoiced])
+                                              .where("check_in < ? AND check_out > ?", check_out, check_in)
+
+    # Get IDs of rooms that are booked
+    booked_room_ids = conflicting_bookings.pluck(:room_id)
+
+    # Return rooms that are not booked
+    available_rooms = all_rooms.where.not(id: booked_room_ids)
+
+    render json: available_rooms.map { |r| { id: r.id, room_number: r.room_number, room_type: r.room_type } }
+  end
+
+  def check_room_status
+    room_id = params[:room_id]
+    check_in = params[:check_in].to_date
+    check_out = params[:check_out].to_date
+
+    # Verify room belongs to current organization
+    room = current_organization.rooms.find_by(id: room_id)
+    unless room
+      render json: { booked: true, error: "Room not found" }
+      return
+    end
+
+    # Check if room is booked during this period
+    booked = current_organization.bookings
+                                .where(room_id: room_id)
+                                .where.not(status: [:cancelled, :invoiced])
+                                .where("check_in < ? AND check_out > ?", check_out, check_in)
+                                .exists?
+
+    render json: { booked: booked }
   end
 
   def room_history
     room_id = params[:room_id]
-    check_in = params[:check_in]
-    check_out = params[:check_out]
+    
+    # Verify room belongs to current organization
+    room = current_organization.rooms.find_by(id: room_id)
+    unless room
+      render json: []
+      return
+    end
 
-    bookings = Booking
-      .where(room_id: room_id)
-      .where("check_in < ? AND check_out > ?", check_out, check_in)
-      .includes(:customer)
+    bookings = current_organization.bookings
+                                  .where(room_id: room_id)
+                                  .includes(:customer)
+                                  .order(check_in: :desc)
+                                  .limit(5)
 
     render json: bookings.map { |b|
       {
-        id: b.id,
-        customer: b.customer.name,
-        check_in: b.check_in.strftime("%d %b %Y %H:%M"),
-        check_out: b.check_out.strftime("%d %b %Y %H:%M"),
+        customer: b.customer&.name,
+        check_in: b.check_in.strftime("%d %b"),
+        check_out: b.check_out.strftime("%d %b"),
         status: b.status
       }
     }
@@ -125,19 +153,15 @@ class BookingsController < ApplicationController
   private
 
   def set_booking
-    @booking = Booking.find(params[:id])
+    @booking = current_organization.bookings.find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    redirect_to bookings_path, alert: "Booking not found or access denied"
   end
 
   def booking_params
     params.require(:booking).permit(
-      :customer_id,
-      :room_id,
-      :check_in,
-      :check_out,
-      :adults,
-      :children,
-      :status,
-      :comment 
+      :customer_id, :room_id, :check_in, :check_out,
+      :adults, :children, :status, :comment
     )
   end
 end

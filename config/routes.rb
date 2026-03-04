@@ -16,7 +16,12 @@ Rails.application.routes.draw do
   resources :rooms do
     member do
       patch :update_price
+      patch :copy_to_org
     end
+  end
+
+  authenticate :user, ->(u) { u.super_admin? } do
+    resources :organizations
   end
   
   resources :invoices do

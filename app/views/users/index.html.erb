@@ -10,7 +10,14 @@
       <% end %>
 
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0">User Management</h1>
+        <div>
+          <h1 class="mb-0">User Management</h1>
+          <% if current_user.super_admin? %>
+            <small class="text-muted">Managing users across all organizations</small>
+          <% else %>
+            <small class="text-muted">Managing users for <%= current_user.organization.name %></small>
+          <% end %>
+        </div>
         <%= link_to "Add User", new_user_path, class: "btn text-white", style: "background-color: #007bff;" %>
       </div>
 
@@ -25,6 +32,9 @@
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
+                  <% if current_user.super_admin? %>
+                    <th>Organization</th>
+                  <% end %>
                   <th>Role</th>
                   <th>Created</th>
                   <th>Actions</th>
@@ -33,8 +43,21 @@
               <tbody>
                 <% @users.each do |user| %>
                   <tr>
-                    <td><strong><%= user.name %></strong></td>
+                    <td>
+                      <strong><%= user.name %></strong>
+                      <% if user == current_user %>
+                        <span class="badge bg-info ms-1">You</span>
+                      <% end %>
+                    </td>
                     <td><%= user.email %></td>
+                    <% if current_user.super_admin? %>
+                      <td>
+                        <span class="badge bg-secondary">
+                          <i class="bi bi-building"></i>
+                          <%= user.organization.name %>
+                        </span>
+                      </td>
+                    <% end %>
                     <td>
                       <span class="badge
                         <%= case user.role
@@ -47,17 +70,19 @@
                     </td>
                     <td><%= user.created_at.strftime("%d %b %Y") %></td>
                     <td>
-                      <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
-                      <%= button_to "Reset Password", reset_password_user_path(user),
-                          method: :patch,
-                          class: "btn btn-sm btn-outline-warning",
-                          data: { confirm: "Reset password for #{user.name}?" } %>
-                      <% unless user == current_user %>
-                        <%= button_to "Delete", user_path(user),
-                            method: :delete,
-                            class: "btn btn-sm btn-outline-danger",
-                            data: { confirm: "Are you sure you want to delete #{user.name}?" } %>
-                      <% end %>
+                      <div class="btn-group" role="group">
+                        <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
+                        <%= button_to "Reset Password", reset_password_user_path(user),
+                            method: :patch,
+                            class: "btn btn-sm btn-outline-warning",
+                            data: { confirm: "Reset password for #{user.name}?" } %>
+                        <% unless user == current_user %>
+                          <%= button_to "Delete", user_path(user),
+                              method: :delete,
+                              class: "btn btn-sm btn-outline-danger",
+                              data: { confirm: "Are you sure you want to delete #{user.name}?" } %>
+                        <% end %>
+                      </div>
                     </td>
                   </tr>
                 <% end %>
