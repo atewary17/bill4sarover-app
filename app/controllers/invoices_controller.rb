@@ -374,7 +374,8 @@ class InvoicesController < ApplicationController
 
     @invoice.invoice_items.each do |item|
       gross    = item.quantity.to_d * item.unit_price.to_d
-      tax_rate = @invoice.tax_rate.to_d
+      is_room_booking = item.metadata&.dig("type") == "booking"
+      tax_rate = is_room_booking ? @invoice.tax_rate.to_d : 0
       tax      = gross * (tax_rate / 100)
 
       item.gross_amount         = gross

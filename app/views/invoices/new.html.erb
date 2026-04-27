@@ -181,7 +181,20 @@
               <div class="row">
                 <div class="col-md-5 offset-md-7">
                   <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted">Booking Subtotal</span>
+                    <span class="text-muted">Room Charges</span>
+                    <strong id="booking-room-subtotal">₹0.00</strong>
+                  </div>
+                  <div class="d-flex justify-content-between mb-1" id="booking-gst-row" style="display:none!important;">
+                    <span class="text-muted">GST (<span id="booking-gst-rate">0</span>%)</span>
+                    <strong id="booking-gst-amount" class="text-warning">₹0.00</strong>
+                  </div>
+                  <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Service Charges</span>
+                    <strong id="booking-service-subtotal">₹0.00</strong>
+                  </div>
+                  <hr class="my-1">
+                  <div class="d-flex justify-content-between">
+                    <span class="fw-bold">Booking Total</span>
                     <strong id="booking-subtotal">₹0.00</strong>
                   </div>
                 </div>
@@ -295,7 +308,7 @@
                   <strong class="text-danger" id="summary-discount">— ₹0.00</strong>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
-                  <span class="text-muted">Tax</span>
+                  <span class="text-muted">GST on Room Bookings</span>
                   <strong class="text-muted" id="summary-tax">₹0.00</strong>
                 </div>
                 <hr class="my-2">
@@ -581,46 +594,60 @@
 
     // ── Main recalculate ─────────────────────────────────────────────
     function recalculate() {
-      let bookingSubtotal = 0;
-      let adhocSubtotal   = 0;
+      let roomSubtotal    = 0;  // room nights × rate only (taxable)
+      let serviceSubtotal = 0;  // service charges (no tax)
+      let adhocSubtotal   = 0;  // adhoc items (no tax)
 
-      // Booking rows
+      // Booking rows: separate room charges from service charges
       document.querySelectorAll(".booking-checkbox").forEach(cb => {
         if (!cb.checked) return;
         const bookingId = cb.dataset.bookingId;
         const nights    = parseFloat(cb.dataset.nights) || 0;
         const price     = parseFloat(cb.dataset.unitPrice) || 0;
-        bookingSubtotal += nights * price;
+        roomSubtotal += nights * price;
 
-        // Service charges for this booking
         document.querySelectorAll(`#extra-items-${bookingId} .extra-line-item`).forEach(item => {
-          const idx   = item.dataset.lineIndex;
-          const qty   = parseFloat(document.querySelector(`[name="extra_items[${idx}][quantity]"]`)?.value) || 0;
-          const up    = parseFloat(document.querySelector(`[name="extra_items[${idx}][unit_price]"]`)?.value) || 0;
-          bookingSubtotal += qty * up;
+          const idx = item.dataset.lineIndex;
+          const qty = parseFloat(document.querySelector(`[name="extra_items[${idx}][quantity]"]`)?.value) || 0;
+          const up  = parseFloat(document.querySelector(`[name="extra_items[${idx}][unit_price]"]`)?.value) || 0;
+          serviceSubtotal += qty * up;
         });
       });
 
       // Adhoc items
       document.querySelectorAll("#adhoc-items-container .extra-line-item").forEach(item => {
-        const idx   = item.dataset.lineIndex;
-        const qty   = parseFloat(document.querySelector(`[name="adhoc_items[${idx}][quantity]"]`)?.value) || 0;
-        const up    = parseFloat(document.querySelector(`[name="adhoc_items[${idx}][unit_price]"]`)?.value) || 0;
+        const idx = item.dataset.lineIndex;
+        const qty = parseFloat(document.querySelector(`[name="adhoc_items[${idx}][quantity]"]`)?.value) || 0;
+        const up  = parseFloat(document.querySelector(`[name="adhoc_items[${idx}][unit_price]"]`)?.value) || 0;
         adhocSubtotal += qty * up;
       });
 
-      const netSubtotal  = bookingSubtotal + adhocSubtotal;
-      const discType     = discountTypeEl?.value || "flat";
-      const discValue    = parseFloat(discountValueEl?.value) || 0;
-      const discAmt      = discType === "percentage" ? netSubtotal * discValue / 100 : discValue;
-      const taxable      = netSubtotal - discAmt;
-      const taxRate      = parseFloat(taxRateEl?.value) || 0;
-      const taxAmt       = taxable * taxRate / 100;
-      const total        = taxable + taxAmt;
+      const netSubtotal = roomSubtotal + serviceSubtotal + adhocSubtotal;
+      const discType    = discountTypeEl?.value || "flat";
+      const discValue   = parseFloat(discountValueEl?.value) || 0;
+      const discAmt     = discType === "percentage" ? netSubtotal * discValue / 100 : discValue;
+      const taxRate     = parseFloat(taxRateEl?.value) || 0;
+      const taxAmt      = roomSubtotal * taxRate / 100;  // GST on room bookings only
+      const total       = netSubtotal - discAmt + taxAmt;
 
-      // Update displays
-      const bookingSubEl = document.getElementById("booking-subtotal");
-      if (bookingSubEl) bookingSubEl.textContent = `₹${bookingSubtotal.toFixed(2)}`;
+      // Booking card footer
+      const roomSubEl = document.getElementById("booking-room-subtotal");
+      if (roomSubEl) roomSubEl.textContent = `₹${roomSubtotal.toFixed(2)}`;
+
+      const svcSubEl = document.getElementById("booking-service-subtotal");
+      if (svcSubEl) svcSubEl.textContent = `₹${serviceSubtotal.toFixed(2)}`;
+
+      const gstRow = document.getElementById("booking-gst-row");
+      const gstAmt = document.getElementById("booking-gst-amount");
+      const gstRateEl = document.getElementById("booking-gst-rate");
+      if (gstRow && gstAmt) {
+        gstRow.style.display = taxRate > 0 ? "flex" : "none";
+        gstAmt.textContent = `₹${taxAmt.toFixed(2)}`;
+        if (gstRateEl) gstRateEl.textContent = taxRate;
+      }
+
+      const bookingTotalEl = document.getElementById("booking-subtotal");
+      if (bookingTotalEl) bookingTotalEl.textContent = `₹${(roomSubtotal + serviceSubtotal + taxAmt).toFixed(2)}`;
 
       const adhocSubEl = document.getElementById("adhoc-subtotal");
       if (adhocSubEl) adhocSubEl.textContent = `₹${adhocSubtotal.toFixed(2)}`;
