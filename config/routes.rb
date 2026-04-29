@@ -21,12 +21,12 @@ Rails.application.routes.draw do
   
   resources :invoices do
     member do
-      post :issue
-      post :record_payment
-      post :mark_paid
-      post :mark_void
-      get :download_pdf
-      get :download_receipt
+      patch :issue
+      post  :record_payment
+      patch :mark_paid
+      patch :mark_void
+      get   :download_pdf
+      get   :download_receipt
     end
   end
 

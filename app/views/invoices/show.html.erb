@@ -63,19 +63,36 @@
               </table>
 
               <div class="mt-3">
-                <h6 class="fw-bold mb-2">BILLED TO:</h6>
-                <div class="ps-2">
-                  <strong><%= @invoice.billed_to_name || "—" %></strong><br>
+                <table class="table table-sm table-borderless mb-0">
+                  <tr>
+                    <td class="fw-bold" style="width: 130px;">Guest Name</td>
+                    <td>: <strong><%= @invoice.billed_to_name || "—" %></strong></td>
+                  </tr>
+                  <% if @guest_company.present? %>
+                    <tr>
+                      <td class="fw-bold">Guest Company</td>
+                      <td>: <%= @guest_company %></td>
+                    </tr>
+                  <% end %>
                   <% if @invoice.billed_to_phone.present? %>
-                    Phone: <%= @invoice.billed_to_phone %><br>
+                    <tr>
+                      <td class="fw-bold">Phone</td>
+                      <td>: <%= @invoice.billed_to_phone %></td>
+                    </tr>
                   <% end %>
                   <% if @invoice.billed_to_email.present? %>
-                    Email: <%= @invoice.billed_to_email %><br>
+                    <tr>
+                      <td class="fw-bold">Email</td>
+                      <td>: <%= @invoice.billed_to_email %></td>
+                    </tr>
                   <% end %>
                   <% if @invoice.company_gst_number.present? %>
-                    <strong>GST #:</strong> <%= @invoice.company_gst_number %><br>
+                    <tr>
+                      <td class="fw-bold">GST #</td>
+                      <td>: <%= @invoice.company_gst_number %></td>
+                    </tr>
                   <% end %>
-                </div>
+                </table>
               </div>
             </div>
 

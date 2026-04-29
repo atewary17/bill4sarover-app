@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_02_20_084907) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_29_100002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -37,6 +37,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_20_084907) do
     t.datetime "updated_at", null: false
     t.boolean "is_guest"
     t.bigint "payer_id"
+    t.boolean "is_company", default: false, null: false
     t.index ["payer_id"], name: "index_customers_on_payer_id"
   end
 
@@ -93,6 +94,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_20_084907) do
     t.datetime "issued_at"
     t.text "notes"
     t.text "terms_and_conditions"
+    t.string "guest_name"
+    t.string "guest_company"
     t.index ["billed_to_type", "billed_to_id"], name: "index_invoices_on_billed_to_type_and_billed_to_id"
     t.index ["invoice_number"], name: "index_invoices_on_invoice_number", unique: true
   end

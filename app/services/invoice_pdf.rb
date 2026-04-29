@@ -1,12 +1,15 @@
 class InvoicePdf < Prawn::Document
-  # Update these to match your hotel's details
   HOTEL = {
-    name:    ENV.fetch('HOTEL_NAME',    'Sarover Hotel'),
-    tagline: ENV.fetch('HOTEL_TAGLINE', ''),
-    address: ENV.fetch('HOTEL_ADDRESS', 'Kolkata, West Bengal, India'),
-    phone:   ENV.fetch('HOTEL_PHONE',   ''),
-    gst:     ENV.fetch('HOTEL_GST',     '')
+    name:    'HOTEL SAROVAR',
+    tagline: 'A Business Class Boutique Hotel',
+    address: 'Kacheri Road, Asansol Court Area, Asansol, West Bengal - 713304',
+    phone:   '',
+    gst:     '19AASFH3340Q1ZM'
   }.freeze
+
+  LOGO_PATH = Rails.root.join('app', 'assets', 'images', 'hotel_logo.png').freeze
+  LOGO_W    = 110   # rendered width  in pts
+  LOGO_H    = 88    # rendered height in pts
 
   def initialize(invoice)
     super(page_size: 'A4', margin: [30, 35, 50, 35])
@@ -20,6 +23,15 @@ class InvoicePdf < Prawn::Document
     @total_gst        = @booking_items.sum { |i| i.tax_amount.to_d }
     @total_paid       = invoice.payments.sum(:amount).to_d
     @balance_due      = invoice.total_amount.to_d - @total_paid
+
+    # Derive guest company: manual entry wins, then payer relationship
+    @guest_company = invoice.guest_company.presence
+    if @guest_company.nil? && invoice.billed_to_id.present?
+      billed_customer = Customer.find_by(id: invoice.billed_to_id)
+      payer = billed_customer&.payer
+      @guest_company = payer.name if payer&.is_company?
+    end
+
     generate
   end
 
@@ -56,26 +68,51 @@ class InvoicePdf < Prawn::Document
 
   # ── 1. Hotel Header ──────────────────────────────────────────────────
   def hotel_header
-    text s(HOTEL[:name]), size: 14, style: :bold, align: :center
-    text s(HOTEL[:tagline]), size: 9, align: :center unless HOTEL[:tagline].to_s.strip.empty?
-    text s(HOTEL[:address]), size: 9, align: :center
-    text "Phone : #{s(HOTEL[:phone])}", size: 9, align: :center unless HOTEL[:phone].to_s.strip.empty?
-    move_down 5
-    stroke_horizontal_rule
+    w          = bounds.width
+    has_logo   = File.exist?(LOGO_PATH)
+
+    if has_logo
+      # ── Logo floated left; hotel text centred over the full width ───
+      top_y = cursor
+
+      # float preserves cursor — logo is drawn absolutely, layout unaffected
+      float { image LOGO_PATH.to_s, at: [0, top_y], fit: [LOGO_W, LOGO_H] }
+
+      # Full-width centred text (overlaps logo column visually but text
+      # padding means name/address land in the visual centre of the page)
+      move_down 8
+      text s(HOTEL[:name]),    size: 14, style: :bold, align: :center
+      text s(HOTEL[:tagline]), size: 9,  align: :center unless HOTEL[:tagline].to_s.strip.empty?
+      move_down 3
+      text s(HOTEL[:address]), size: 9,  align: :center
+      text "Phone : #{s(HOTEL[:phone])}", size: 9, align: :center unless HOTEL[:phone].to_s.strip.empty?
+
+      # Guarantee we are below the logo before drawing the rule
+      logo_bottom = top_y - LOGO_H
+      move_down(cursor - logo_bottom) if cursor > logo_bottom
+    else
+      # ── No logo — full-width centred text ───────────────────────────
+      text s(HOTEL[:name]),    size: 15, style: :bold, align: :center
+      text s(HOTEL[:tagline]), size: 9,  align: :center unless HOTEL[:tagline].to_s.strip.empty?
+      text s(HOTEL[:address]), size: 9,  align: :center
+      text "Phone : #{s(HOTEL[:phone])}", size: 9, align: :center unless HOTEL[:phone].to_s.strip.empty?
+    end
+
+    move_down 6
+    stroke_horizontal_rule   # ← now always below the logo
     move_down 4
 
-    w = bounds.width
-    third = w / 3.0
+    # ── Three-column sub-header row ─────────────────────────────────
+    third  = w / 3.0
+    row_y  = cursor
 
-    # Row: GST (left) | TAX INVOICE (center) | ORIGINAL FOR RECIPIENT (right)
-    float { bounding_box([0, cursor], width: third) do
-      text s(HOTEL[:gst].to_s.strip.empty? ? '' : "GST # #{HOTEL[:gst]}"), size: 8
-      text s(@invoice.company_gst_number.present? ? "Cust. GST: #{@invoice.company_gst_number}" : ''), size: 8
+    float { bounding_box([0, row_y], width: third) do
+      text "GST # #{s(HOTEL[:gst])}", size: 8, style: :bold
     end }
-    float { bounding_box([third, cursor], width: third) do
+    float { bounding_box([third, row_y], width: third) do
       text 'TAX INVOICE', size: 11, style: :bold, align: :center
     end }
-    bounding_box([third * 2, cursor], width: third) do
+    bounding_box([third * 2, row_y], width: third) do
       text 'ORIGINAL FOR RECIPIENT', size: 8, align: :right
     end
 
@@ -91,13 +128,12 @@ class InvoicePdf < Prawn::Document
     col_w   = w / 2.0 - 6
 
     left_rows = [
-      ['Room No.', room_label(booking)],
+      ['Room No.',    room_label(booking)],
       ['Invoice No.', s(@invoice.invoice_number)],
-      ['Guest Name', s(@invoice.billed_to_name)],
+      ['Guest Name',  s(@invoice.billed_to_name)],
     ]
-    left_rows << ['Phone', s(@invoice.billed_to_phone)] if @invoice.billed_to_phone.present?
-    left_rows << ['Email', s(@invoice.billed_to_email)] if @invoice.billed_to_email.present?
-    left_rows << ['GST #', s(@invoice.company_gst_number)] if @invoice.company_gst_number.present?
+    left_rows << ['Guest Company', s(@guest_company)]                if @guest_company.present?
+    left_rows << ['Customer GST',  s(@invoice.company_gst_number)]   if @invoice.company_gst_number.present?
 
     right_rows = [
       ['Date',   @invoice.created_at.strftime('%d-%b-%Y')],
@@ -141,30 +177,21 @@ class InvoicePdf < Prawn::Document
     w = bounds.width
 
     # Column widths (must sum to w ≈ 525)
-    cw = { date: 58, desc: 0, hsn: 52, qty: 42, rate: 58, charge: 62, credit: 42 }
+    cw = { date: 60, desc: 0, hsn: 55, qty: 45, rate: 65, charge: 70 }
     cw[:desc] = w - cw.values.sum
     col_widths = cw.values
 
-    header = [['Date', 'Description', 'HSN/SAC', 'Days/Qty', 'Rate', 'Charge', 'Credit']]
-    rows   = build_item_rows
-
-    # Pad to at least 7 data rows for a clean look
-    padding = [7 - rows.count, 0].max
-    padding.times { rows << ['', '', '', '', '', '', ''] }
-
-    all_rows = header + rows
+    header   = [['Date', 'Description', 'HSN/SAC', 'Days/Qty', 'Rate', 'Charge']]
+    all_rows = header + build_item_rows
 
     table(all_rows, header: true, width: w, column_widths: col_widths,
           cell_style: { padding: [3, 5], size: 9, border_color: 'BBBBBB' }) do
-      # Header row
-      row(0).font_style      = :bold
+      row(0).font_style       = :bold
       row(0).background_color = '2C3E50'
       row(0).text_color       = 'FFFFFF'
 
-      # Right-align numeric columns
-      columns(2..6).align = :right
+      columns(2..5).align = :right
 
-      # Section header rows (colspan rows are identified by being a Hash array)
       (1..row_length - 1).each do |r|
         next unless cells[r, 0].content.to_s =~ /^(SERVICE CHARGES|ADDITIONAL ITEMS)$/
         row(r).background_color = cells[r, 0].content.start_with?('SERVICE') ? 'FFF8E1' : 'F3F0FF'
@@ -190,7 +217,7 @@ class InvoicePdf < Prawn::Document
           rows << [
             (ci + n.days).strftime('%d-%b-%y'),
             "#{room} #{rtype} Room Tariff",
-            '996311', '1', fc(rate), fc(rate), '0.00'
+            '996311', '1', fc(rate), fc(rate)
           ]
         end
       else
@@ -198,29 +225,29 @@ class InvoicePdf < Prawn::Document
           item.created_at.strftime('%d-%b-%y'),
           s(item.description),
           '996311', item.quantity.to_i.to_s,
-          fc(item.unit_price), fc(item.gross_amount), '0.00'
+          fc(item.unit_price), fc(item.gross_amount)
         ]
       end
     end
 
     unless @service_items.empty?
-      rows << ['SERVICE CHARGES', '', '', '', '', '', '']
+      rows << ['SERVICE CHARGES', '', '', '', '', '']
       @service_items.each do |item|
         rows << [
           item.created_at.strftime('%d-%b-%y'), s(item.description),
           '—', item.quantity.to_i.to_s,
-          fc(item.unit_price), fc(item.gross_amount), '0.00'
+          fc(item.unit_price), fc(item.gross_amount)
         ]
       end
     end
 
     unless @adhoc_items.empty?
-      rows << ['ADDITIONAL ITEMS', '', '', '', '', '', '']
+      rows << ['ADDITIONAL ITEMS', '', '', '', '', '']
       @adhoc_items.each do |item|
         rows << [
           item.created_at.strftime('%d-%b-%y'), s(item.description),
           '—', item.quantity.to_i.to_s,
-          fc(item.unit_price), fc(item.gross_amount), '0.00'
+          fc(item.unit_price), fc(item.gross_amount)
         ]
       end
     end

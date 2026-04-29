@@ -43,6 +43,14 @@
               </label>
             </div>
 
+            <div class="mb-3 form-check">
+              <%= form.check_box :is_company, class: "form-check-input", id: "customer-is-company" %>
+              <label class="form-check-label fw-bold" for="customer-is-company">
+                Is Company?
+              </label>
+              <div class="form-text">Enable to collect Guest Name &amp; Guest Company on invoices for this customer.</div>
+            </div>
+
             <!-- Payer section (hidden by default) -->
             <div id="payer-section" 
                  class="card mb-3 shadow-sm"

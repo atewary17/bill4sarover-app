@@ -81,6 +81,7 @@ class CustomersController < ApplicationController
         :phone,
         :email,
         :is_guest,
+        :is_company,
         :payer_id
       )
     end

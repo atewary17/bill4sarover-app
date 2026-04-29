@@ -92,9 +92,17 @@ class InvoicesController < ApplicationController
   end
 
   def show
-    @payments = @invoice.payments.order(created_at: :desc)
+    @payments   = @invoice.payments.order(created_at: :desc)
     @total_paid = @payments.sum(:amount)
     @balance_due = @invoice.total_amount - @total_paid
+
+    # Derive guest company: manual entry takes precedence, then payer lookup
+    @guest_company = @invoice.guest_company.presence
+    if @guest_company.nil? && @invoice.billed_to_id.present?
+      billed_customer = Customer.find_by(id: @invoice.billed_to_id)
+      payer = billed_customer&.payer
+      @guest_company = payer.name if payer&.is_company?
+    end
   end
 
   # Mark invoice as issued
@@ -263,6 +271,8 @@ class InvoicesController < ApplicationController
       :billed_to_phone,
       :billed_to_email,
       :company_gst_number,
+      :guest_name,
+      :guest_company,
       :discount_type,
       :discount_value,
       :tax_rate,
