@@ -279,6 +279,17 @@
           </div>
           <div class="card-body">
             <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Invoice Number</label>
+                <%= f.text_field :invoice_number,
+                    value: @invoice.invoice_number.presence || @suggested_invoice_number,
+                    class: "form-control",
+                    placeholder: "e.g. SAR-20260610-00001",
+                    required: true %>
+                <div class="form-text">Editable — change it if you use a different numbering.</div>
+              </div>
+            </div>
+            <div class="row mb-3">
               <div class="col-md-4">
                 <label class="form-label fw-bold">Discount Type</label>
                 <%= f.select :discount_type,

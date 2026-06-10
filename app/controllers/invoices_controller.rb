@@ -14,6 +14,7 @@ class InvoicesController < ApplicationController
 
   def new
     @invoice = Invoice.new
+    @suggested_invoice_number = suggested_invoice_number
     @bookings = Booking.where(id: params[:booking_ids])
                        .where.not(status: :invoiced)
     
@@ -34,8 +35,7 @@ class InvoicesController < ApplicationController
 
   def create
     @invoice = Invoice.new(invoice_params)
-    @invoice.invoice_number = generate_invoice_number
-    @invoice.status         = "draft"
+    @invoice.status = "draft"
 
     resolve_billed_to
 
@@ -265,6 +265,7 @@ class InvoicesController < ApplicationController
 
   def invoice_params
     params.require(:invoice).permit(
+      :invoice_number,
       :billed_to_id,
       :billed_to_type,
       :billed_to_name,
@@ -437,16 +438,15 @@ class InvoicesController < ApplicationController
     end
   end
 
-  # def generate_invoice_number
-  #   "SAR-#{Time.current.strftime('%Y%m%d')}-#{SecureRandom.hex(3).upcase}"
-  # end
-
-  def generate_invoice_number
+  # Builds a suggested invoice number to prefill the form. The user can edit or
+  # replace it; the value actually saved is whatever they submit (validated for
+  # presence and uniqueness on the Invoice model).
+  def suggested_invoice_number
     date_part = Time.current.strftime('%Y%m%d')
 
     last_invoice = Invoice
       .where("invoice_number LIKE ?", "SAR-#{date_part}-%")
-      .order(:created_at)
+      .order(:invoice_number)
       .last
 
     last_serial =
@@ -456,8 +456,6 @@ class InvoicesController < ApplicationController
         0
       end
 
-    new_serial = last_serial + 1
-
-    "SAR-#{date_part}-#{format('%05d', new_serial)}"
+    "SAR-#{date_part}-#{format('%05d', last_serial + 1)}"
   end
 end
