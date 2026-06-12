@@ -133,7 +133,7 @@ class InvoicePdf < Prawn::Document
       ['Guest Name',  s(@invoice.billed_to_name)],
     ]
     left_rows << ['Guest Company', s(@guest_company)]                if @guest_company.present?
-    left_rows << ['Customer GST',  s(@invoice.company_gst_number)]   if @invoice.company_gst_number.present?
+    left_rows << ['Company GST',  s(@invoice.company_gst_number)]   if @invoice.company_gst_number.present?
 
     right_rows = [
       ['Date',   (@invoice.issued_at || @invoice.created_at).strftime('%d-%b-%Y')],
