@@ -2,7 +2,9 @@ class Invoice < ApplicationRecord
   has_many :invoice_bookings, dependent: :destroy
   has_many :bookings, through: :invoice_bookings
   has_many :invoice_items, dependent: :destroy
-  has_many :payments, dependent: :destroy  
+  has_many :payments, dependent: :destroy
+
+  accepts_nested_attributes_for :invoice_items, allow_destroy: true
 
   enum status: {
     draft: "draft",

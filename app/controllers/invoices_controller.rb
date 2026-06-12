@@ -1,5 +1,5 @@
 class InvoicesController < ApplicationController
-  before_action :set_invoice, only: [:show, :mark_paid, :mark_void, :issue, :record_payment, :download_pdf, :download_receipt]
+  before_action :set_invoice, only: [:show, :edit, :update, :mark_paid, :mark_void, :issue, :record_payment, :download_pdf, :download_receipt]
 
   def index
     @from = params[:from].presence&.to_date || 10.days.ago.to_date
@@ -103,6 +103,29 @@ class InvoicesController < ApplicationController
       payer = billed_customer&.payer
       @guest_company = payer.name if payer&.is_company?
     end
+  end
+
+  def edit
+    @customers = Customer.order(:name)
+  end
+
+  def update
+    ActiveRecord::Base.transaction do
+      @invoice.assign_attributes(invoice_update_params)
+      tag_new_adhoc_items
+      calculate_totals
+      @invoice.save!
+    end
+
+    redirect_to @invoice, notice: "Invoice updated successfully"
+
+  rescue ActiveRecord::RecordInvalid => e
+    Rails.logger.error "Invoice update failed: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
+
+    @customers = Customer.order(:name)
+    @invoice.errors.add(:base, "Failed to update invoice: #{e.message}") if @invoice.errors.empty?
+    render :edit, status: :unprocessable_entity
   end
 
   # Mark invoice as issued
@@ -284,6 +307,44 @@ class InvoicesController < ApplicationController
     )
   end
 
+  def invoice_update_params
+    params.require(:invoice).permit(
+      :invoice_number,
+      :billed_to_name,
+      :billed_to_phone,
+      :billed_to_email,
+      :company_gst_number,
+      :guest_name,
+      :guest_company,
+      :discount_type,
+      :discount_value,
+      :tax_rate,
+      :status,
+      :due_date,
+      :issued_at,
+      :notes,
+      :terms_and_conditions,
+      invoice_items_attributes: [
+        :id,
+        :description,
+        :quantity,
+        :unit_price,
+        :_destroy
+      ]
+    )
+  end
+
+  # New line items added through the edit form have no metadata; treat them as
+  # adhoc (no GST) so they render and tax correctly. Existing items keep theirs.
+  def tag_new_adhoc_items
+    @invoice.invoice_items.each do |item|
+      next if item.marked_for_destruction?
+      next if item.metadata&.dig("type").present?
+
+      item.metadata = { "type" => "adhoc" }
+    end
+  end
+
   def resolve_billed_to
     return unless @invoice.billed_to_id.present?
 
@@ -384,6 +445,8 @@ class InvoicesController < ApplicationController
     tax_total = 0
 
     @invoice.invoice_items.each do |item|
+      next if item.marked_for_destruction?
+
       gross    = item.quantity.to_d * item.unit_price.to_d
       is_room_booking = item.metadata&.dig("type") == "booking"
       tax_rate = is_room_booking ? @invoice.tax_rate.to_d : 0

@@ -129,6 +129,9 @@
                       <%= link_to "View", invoice_path(invoice),
                           class: "badge text-white text-decoration-none",
                           style: "background-color: #007bff; padding: 0.35rem 0.65rem; font-size: 0.75rem;" %>
+                      <%= link_to "Edit", edit_invoice_path(invoice),
+                          class: "badge text-decoration-none",
+                          style: "background-color: #e9ecef; color: #2c3e50; padding: 0.35rem 0.65rem; font-size: 0.75rem;" %>
                     </td>
                   </tr>
                 <% end %>

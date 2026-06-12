@@ -1,2 +1,346 @@
-<h1>Invoices#edit</h1>
-<p>Find me in app/views/invoices/edit.html.erb</p>
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-10">
+
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">Edit Invoice</h1>
+        <%= link_to "Back to Invoice", invoice_path(@invoice), class: "btn btn-secondary" %>
+      </div>
+
+      <% if @invoice.errors.any? %>
+        <div class="alert alert-danger">
+          <strong>Please fix the following:</strong>
+          <ul class="mb-0">
+            <% @invoice.errors.full_messages.each do |msg| %>
+              <li><%= msg %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <%= form_with model: @invoice, method: :patch do |f| %>
+
+        <!-- ── Invoice Header ─────────────────────────────────────────── -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header text-white" style="background-color: #2c3e50;">
+            <h5 class="mb-0">Invoice Header</h5>
+          </div>
+          <div class="card-body">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Invoice Number</label>
+                <%= f.text_field :invoice_number, class: "form-control", required: true %>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Status</label>
+                <%= f.select :status,
+                    Invoice.statuses.keys.map { |s| [s.humanize, s] },
+                    {},
+                    class: "form-select" %>
+                <div class="form-text">Changing status here does not record payments.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Billed To ─────────────────────────────────────────────── -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header text-white" style="background-color: #2c3e50;">
+            <h5 class="mb-0">Billed To</h5>
+          </div>
+          <div class="card-body">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Name</label>
+                <%= f.text_field :billed_to_name, class: "form-control", placeholder: "Customer / company name" %>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Company GST Number</label>
+                <%= f.text_field :company_gst_number, class: "form-control", placeholder: "GST Number" %>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Phone</label>
+                <%= f.text_field :billed_to_phone, class: "form-control", placeholder: "Phone" %>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Email</label>
+                <%= f.email_field :billed_to_email, class: "form-control", placeholder: "Email" %>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Guest Name <small class="text-muted fw-normal">(person staying)</small></label>
+                <%= f.text_field :guest_name, class: "form-control", placeholder: "Guest name" %>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Guest Company <small class="text-muted fw-normal">(optional)</small></label>
+                <%= f.text_field :guest_company, class: "form-control", placeholder: "Company / organisation" %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Line Items ────────────────────────────────────────────── -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header text-white d-flex justify-content-between align-items-center"
+               style="background-color: #2c3e50;">
+            <h5 class="mb-0">Line Items</h5>
+            <small class="text-white-50">Room items are taxed at the invoice GST rate; others are not</small>
+          </div>
+
+          <div class="px-3 py-2 border-bottom d-none d-md-block" style="background-color: #f1f3f5;">
+            <div class="row fw-bold text-muted small">
+              <div class="col-md-5">Description</div>
+              <div class="col-md-2 text-center">Qty</div>
+              <div class="col-md-2 text-center">Unit Price (₹)</div>
+              <div class="col-md-2 text-end">Line Total</div>
+              <div class="col-md-1"></div>
+            </div>
+          </div>
+
+          <div class="card-body p-0">
+            <div id="line-items-container" class="p-3">
+              <%= f.fields_for :invoice_items do |item_f| %>
+                <% type = item_f.object.metadata&.dig("type") %>
+                <div class="invoice-line-item row align-items-center g-2 mb-2 py-2 px-1 rounded"
+                     data-line-type="<%= type %>"
+                     style="background-color: #f8f9fa; border-left: 3px solid #007bff;">
+
+                  <div class="col-md-5">
+                    <%= item_f.text_field :description,
+                        class: "form-control form-control-sm",
+                        placeholder: "Description", required: true %>
+                    <% if type.present? %>
+                      <small class="text-muted"><%= type.humanize %></small>
+                    <% end %>
+                  </div>
+
+                  <div class="col-md-2">
+                    <%= item_f.number_field :quantity,
+                        class: "form-control form-control-sm line-qty",
+                        min: 0, step: 0.01 %>
+                  </div>
+
+                  <div class="col-md-2">
+                    <%= item_f.number_field :unit_price,
+                        class: "form-control form-control-sm line-price",
+                        min: 0, step: 0.01 %>
+                  </div>
+
+                  <div class="col-md-2 text-end">
+                    <strong class="line-total-display">₹0.00</strong>
+                  </div>
+
+                  <div class="col-md-1 text-end">
+                    <%= item_f.hidden_field :_destroy, class: "destroy-flag" %>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-line-item">&times;</button>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+
+          <div class="card-footer bg-white">
+            <button type="button" id="add-line-item" class="btn btn-sm text-white"
+                    style="background-color: #007bff; font-size: 0.8rem;">
+              + Add Item
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Invoice Settings ──────────────────────────────────────── -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header text-white" style="background-color: #2c3e50;">
+            <h5 class="mb-0">Invoice Settings</h5>
+          </div>
+          <div class="card-body">
+            <div class="row mb-3">
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Discount Type</label>
+                <%= f.select :discount_type,
+                    [["Percentage (%)", "percentage"], ["Flat (₹)", "flat"]],
+                    {},
+                    class: "form-select", id: "invoice_discount_type" %>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Discount Value</label>
+                <%= f.number_field :discount_value, class: "form-control",
+                    min: 0, step: 0.01, id: "invoice_discount_value" %>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Tax Rate (%)</label>
+                <%= f.number_field :tax_rate, class: "form-control",
+                    min: 0, step: 0.01, id: "invoice_tax_rate" %>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Due Date</label>
+                <%= f.date_field :due_date, class: "form-control" %>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Issued At</label>
+                <%= f.datetime_local_field :issued_at, class: "form-control" %>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Notes</label>
+              <%= f.text_area :notes, class: "form-control", rows: 3 %>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Terms & Conditions</label>
+              <%= f.text_area :terms_and_conditions, class: "form-control", rows: 3 %>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Totals Preview ────────────────────────────────────────── -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-5 offset-md-7">
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="text-muted">Subtotal</span>
+                  <strong id="summary-subtotal">₹0.00</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="text-muted">Discount</span>
+                  <strong class="text-danger" id="summary-discount">— ₹0.00</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="text-muted">GST on Room Items</span>
+                  <strong class="text-muted" id="summary-tax">₹0.00</strong>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between">
+                  <span class="fw-bold fs-5">Total</span>
+                  <strong class="fs-5 text-success" id="summary-total">₹0.00</strong>
+                </div>
+                <small class="text-muted d-block mt-1">Final totals are recalculated on save.</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Submit ────────────────────────────────────────────────── -->
+        <div class="d-flex justify-content-end gap-2 mb-5">
+          <%= link_to "Cancel", invoice_path(@invoice), class: "btn btn-secondary" %>
+          <%= f.submit "Save Changes", class: "btn text-white", style: "background-color: #007bff;" %>
+        </div>
+
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const container = document.getElementById("line-items-container");
+    const addBtn    = document.getElementById("add-line-item");
+
+    const discountTypeEl  = document.getElementById("invoice_discount_type");
+    const discountValueEl = document.getElementById("invoice_discount_value");
+    const taxRateEl       = document.getElementById("invoice_tax_rate");
+
+    // Index for newly added rows — start above any server-rendered ones
+    let newIndex = Date.now();
+
+    function buildRowHtml(index) {
+      return `
+        <div class="invoice-line-item row align-items-center g-2 mb-2 py-2 px-1 rounded"
+             data-line-type="adhoc"
+             style="background-color: #fff8e1; border-left: 3px solid #ffc107;">
+          <div class="col-md-5">
+            <input type="text" name="invoice[invoice_items_attributes][${index}][description]"
+                   class="form-control form-control-sm" placeholder="Description" required>
+            <small class="text-muted">New item</small>
+          </div>
+          <div class="col-md-2">
+            <input type="number" name="invoice[invoice_items_attributes][${index}][quantity]"
+                   class="form-control form-control-sm line-qty" min="0" step="0.01" value="1">
+          </div>
+          <div class="col-md-2">
+            <input type="number" name="invoice[invoice_items_attributes][${index}][unit_price]"
+                   class="form-control form-control-sm line-price" min="0" step="0.01" value="0">
+          </div>
+          <div class="col-md-2 text-end">
+            <strong class="line-total-display">₹0.00</strong>
+          </div>
+          <div class="col-md-1 text-end">
+            <input type="hidden" name="invoice[invoice_items_attributes][${index}][_destroy]" value="0" class="destroy-flag">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-line-item">&times;</button>
+          </div>
+        </div>
+      `;
+    }
+
+    addBtn.addEventListener("click", function () {
+      container.insertAdjacentHTML("beforeend", buildRowHtml(newIndex));
+      newIndex++;
+      recalculate();
+    });
+
+    // Remove: existing rows (with a _destroy field) are hidden + flagged;
+    // brand-new rows are removed from the DOM entirely.
+    container.addEventListener("click", function (e) {
+      if (!e.target.classList.contains("remove-line-item")) return;
+      const row  = e.target.closest(".invoice-line-item");
+      const flag = row.querySelector(".destroy-flag");
+
+      if (row.querySelector('input[name*="[id]"]') && flag) {
+        flag.value = "1";
+        row.style.display = "none";
+      } else {
+        row.remove();
+      }
+      recalculate();
+    });
+
+    // Live recalc on any qty/price/discount/tax change
+    container.addEventListener("input", function (e) {
+      if (e.target.classList.contains("line-qty") || e.target.classList.contains("line-price")) {
+        recalculate();
+      }
+    });
+    [discountTypeEl, discountValueEl, taxRateEl].forEach(el => {
+      el?.addEventListener("input", recalculate);
+      el?.addEventListener("change", recalculate);
+    });
+
+    function recalculate() {
+      let subtotal    = 0;
+      let roomSubtotal = 0;
+
+      container.querySelectorAll(".invoice-line-item").forEach(row => {
+        const flag = row.querySelector(".destroy-flag");
+        if (flag && flag.value === "1") return;
+
+        const qty   = parseFloat(row.querySelector(".line-qty")?.value) || 0;
+        const price = parseFloat(row.querySelector(".line-price")?.value) || 0;
+        const gross = qty * price;
+
+        const disp = row.querySelector(".line-total-display");
+        if (disp) disp.textContent = `₹${gross.toFixed(2)}`;
+
+        subtotal += gross;
+        if (row.dataset.lineType === "booking") roomSubtotal += gross;
+      });
+
+      const discType  = discountTypeEl?.value || "flat";
+      const discValue = parseFloat(discountValueEl?.value) || 0;
+      const discAmt   = discType === "percentage" ? subtotal * discValue / 100 : discValue;
+      const taxRate   = parseFloat(taxRateEl?.value) || 0;
+      const taxAmt    = roomSubtotal * taxRate / 100;
+      const total     = subtotal - discAmt + taxAmt;
+
+      document.getElementById("summary-subtotal").textContent = `₹${subtotal.toFixed(2)}`;
+      document.getElementById("summary-discount").textContent = `— ₹${discAmt.toFixed(2)}`;
+      document.getElementById("summary-tax").textContent      = `₹${taxAmt.toFixed(2)}`;
+      document.getElementById("summary-total").textContent    = `₹${total.toFixed(2)}`;
+    }
+
+    recalculate();
+  });
+</script>

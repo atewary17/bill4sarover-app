@@ -406,6 +406,9 @@
         <%= link_to "← Back", invoices_path, class: "btn btn-sm btn-outline-secondary" %>
 
         <div class="d-flex flex-wrap gap-2">
+          <%= link_to "Edit", edit_invoice_path(@invoice),
+              class: "btn btn-sm btn-outline-primary" %>
+
           <%= link_to "Download PDF", download_pdf_invoice_path(@invoice),
               class: "btn btn-sm btn-primary", target: "_blank" %>
 
