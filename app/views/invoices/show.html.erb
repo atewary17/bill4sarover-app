@@ -54,7 +54,7 @@
                 </tr>
                 <tr>
                   <td class="fw-bold">Date</td>
-                  <td>: <%= @invoice.created_at.strftime("%d-%b-%Y") %></td>
+                  <td>: <%= (@invoice.issued_at || @invoice.created_at).strftime("%d-%b-%Y") %></td>
                 </tr>
                 <tr>
                   <td class="fw-bold">Due Date</td>
